@@ -1,0 +1,47 @@
+#version 460 core
+
+#define PI 3.1415926535897932384626433
+
+layout(local_size_x = 1, local_size_y = 16) in;
+
+layout(binding = 0, rgba16f) uniform image2D butterfly;
+
+layout(binding = 1, std430) buffer indices
+{
+	int reversed[];
+};
+
+struct complex
+{
+	float re;
+	float im;
+};
+
+void main()
+{
+	vec2 id = gl_GlobalInvocationID.xy;
+	int size = imageSize(butterfly).y;
+
+	float k = mod(id.y * (float(size)/pow(2, id.x+1)), size);
+	complex twiddle = complex(cos(2.0 * PI * k / float(size)), sin(2.0 * PI * k / float(size)));
+
+	int butterflySpan = int(pow(2, id.x));
+
+	// butterfly wing
+	int bw = mod(id.y, pow(2, id.x + 1)) < pow(2, id.x) ? 1 : 0;
+
+	if (id.x == 0)
+	{
+		if (bw == 1)
+			imageStore(butterfly, ivec2(id), vec4(twiddle.re, twiddle.im, reversed[int(id.y)], reversed[int(id.y + 1)]));
+		else
+			imageStore(butterfly, ivec2(id), vec4(twiddle.re, twiddle.im, reversed[int(id.y - 1)], reversed[int(id.y)]));
+	} else
+	{
+		if (bw == 1)
+			imageStore(butterfly, ivec2(id), vec4(twiddle.re, twiddle.im, id.y, id.y + butterflySpan));
+
+		else
+			imageStore(butterfly, ivec2(id), vec4(twiddle.re, twiddle.im, id.y - butterflySpan, id.y));
+	}
+}

@@ -1,0 +1,5 @@
+BasedOnStyle: Microsoft
+Language: Cpp
+UseTab: ForContinuationAndIndentation
+IndentWidth: 2
+TabWidth: 2

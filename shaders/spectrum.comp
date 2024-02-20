@@ -1,0 +1,56 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) uniform image2D spectrum;
+
+float jonswap(float omega) {
+	float gamma = 3.3;
+	float gravity = 9.81;
+	float fetch = 200.0;
+	float avgWindSpeed = 8.0;
+
+	float omega_p = 22 * (pow(gravity, 2) / (avgWindSpeed * fetch));
+
+	float sigma = (omega > omega_p) ? 0.09 : 0.07;
+
+	float alpha = pow(pow(avgWindSpeed, 2) / (fetch * gravity), 0.22) * 0.076;
+
+	float r = -pow(omega - omega_p, 2)/(2 * pow(sigma, 2) * pow(omega_p, 2));
+	r = exp(r);
+	//float r = 4;
+
+	float res = alpha * pow(gravity, 2) / pow(omega, 5);
+	res *= exp(-(5.0/4.0)*pow(omega_p/omega, 4));
+	res *= pow(gamma, r);
+
+	if (isnan(res)) res = 0.0;
+
+	return res;
+}
+
+void main() {
+	uvec3 id = gl_GlobalInvocationID;
+
+	ivec2 size = imageSize(spectrum);
+
+	float x = (id.x * 2 * 3.1415 / size.x) - 3.1415;
+	float y = (id.y * 2 * 3.1415 / size.y) - 3.1415;
+
+	vec2 coords = vec2(x, y);
+
+	float k = length(coords);
+
+	float omega = sqrt(9.81 * k);
+	float js = jonswap(omega) / (2 * omega);
+
+	vec4 val = imageLoad(spectrum, ivec2(id.xy));
+
+	float newR = val.r * js;
+	float newG = val.g * js;
+
+	if (isnan(newR)) newR = 0.0;
+	if (isnan(newG)) newG = 0.0;
+
+	imageStore(spectrum, ivec2(id.xy), vec4(newR, newG, 0, 1));
+}
