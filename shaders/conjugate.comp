@@ -1,0 +1,17 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) uniform image2D spectrum;
+
+void main(void)
+{
+	uvec2 id = gl_GlobalInvocationID.xy;
+
+	ivec2 size = imageSize(spectrum);
+
+	vec4 k = imageLoad(spectrum, ivec2(id));
+	vec4 k_minus = imageLoad(spectrum, ivec2(size.x - id.x, size.y - id.y));
+
+	imageStore(spectrum, ivec2(id), vec4(k.xy, k_minus.x, -k_minus.y));
+}
