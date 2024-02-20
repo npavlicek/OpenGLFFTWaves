@@ -1,7 +1,6 @@
 import glob
 import subprocess
-import ntpath
-import pathlib
+from pathlib import Path
 import sys
 
 """
@@ -9,23 +8,31 @@ This file is configured to use glslc to compile shaders.
 It also uses cmake to build our application.
 """
 
+shader_types = [
+	'compute',
+	'vertex',
+	'fragment'
+]
+
 def compile_shaders(type, shaders):
 	print(f'Compiling {type} shaders...')
 	for s in shaders:
-		filename = ntpath.basename(s).split('.')[0]
+		filename = Path(s).name.split('.')[0]
 		command = f'glslc {s} -o .\\shaders\\compiled\\{type}\\{filename}.spv'
-		print(f'Compiling: {s}')
+		print(command)
 		output = subprocess.run(command, capture_output=True)
 		if output.returncode != 0:
 			print('ERROR: ' + output.stderr.decode())
 	print()
 
-pathlib.Path()
-
 # Create missing directories
-pathlib.Path.mkdir(pathlib.Path(r'.\shaders\compiled\vertex'), parents=True, exist_ok=True)
-pathlib.Path.mkdir(pathlib.Path(r'.\shaders\compiled\fragment'), parents=True, exist_ok=True)
-pathlib.Path.mkdir(pathlib.Path(r'.\shaders\compiled\compute'), parents=True, exist_ok=True)
+compiled_shader_dir = r'.\shaders\compiled'
+for s in shader_types:
+	dir = Path(f"{compiled_shader_dir}\\{s}")
+	if not dir.exists():
+		print(f"{dir} does not exist. Creating directory...")
+		Path.mkdir(dir, parents=True, exist_ok=True)
+print()
 
 # Get list of shaders
 compute_shaders = glob.glob(r".\shaders\*.comp")
@@ -33,9 +40,9 @@ vertex_shaders = glob.glob(r".\shaders\*.vert")
 fragment_shaders = glob.glob(r".\shaders\*.frag")
 
 # Compile the shaders
-compile_shaders('compute', compute_shaders)
-compile_shaders('vertex', vertex_shaders)
-compile_shaders('fragment', fragment_shaders)
+compile_shaders(shader_types[0], compute_shaders)
+compile_shaders(shader_types[1], vertex_shaders)
+compile_shaders(shader_types[2], fragment_shaders)
 
 # Finally compile the app
 print('Compiling application...')

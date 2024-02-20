@@ -203,8 +203,8 @@ int main()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (GLvoid *)offsetof(vertex, norm));
 
-	std::vector<GLuint> shaders{loadShader(GL_VERTEX_SHADER, "shaders/vert.spv"),
-															loadShader(GL_FRAGMENT_SHADER, "shaders/frag.spv")};
+	std::vector<GLuint> shaders{loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/shader.spv"),
+															loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/shader.spv")};
 
 	GLuint program = linkProgram(shaders);
 

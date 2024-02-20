@@ -66,7 +66,7 @@ GLuint genRandDist(int size)
 
 	glDispatchCompute(size / 8, size / 8, 1);
 
-	glDeleteShader(conjugateShader);
+	glDeleteProgram(conjugateShader);
 
 	auto indices = calculateReverseIndices(size);
 
