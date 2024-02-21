@@ -1,0 +1,98 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) uniform image2D butterfly;
+layout(binding = 1, rgba16f) uniform image2D buffer0;
+layout(binding = 2, rgba16f) uniform image2D buffer1;
+
+/**
+0 = horizontal
+1 = vertical
+2 = invert and permute
+*/
+layout(location = 0) uniform int operation;
+layout(location = 1) uniform int bufferNum;
+layout(location = 2) uniform int stage;
+
+vec2 cmul(vec2 c0, vec2 c1)
+{
+	vec2 res;
+	res.x = c0.x * c1.x - c0.y * c1.y;
+	res.y = c0.x * c1.y + c0.y * c1.x;
+	return res;
+}
+
+void horizontal(ivec2 id)
+{
+	vec2 res;
+	vec4 butterflyData = imageLoad(butterfly, ivec2(stage, id.x));
+
+	if (bufferNum == 0)
+	{
+		vec2 p = imageLoad(buffer0, ivec2(butterflyData.z, id.y)).xy;
+		vec2 q = imageLoad(buffer0, ivec2(butterflyData.w, id.y)).xy;
+
+		res = p + cmul(butterflyData.xy, q);
+
+		imageStore(buffer1, id, vec4(res.xy, 0, 1));
+	}
+	else
+	{
+		vec2 p = imageLoad(buffer1, ivec2(butterflyData.z, id.y)).xy;
+		vec2 q = imageLoad(buffer1, ivec2(butterflyData.w, id.y)).xy;
+
+		res = p + cmul(butterflyData.xy, q);
+
+		imageStore(buffer0, id, vec4(res.xy, 0, 1));
+	}
+}
+
+void vertical(ivec2 id)
+{
+	vec2 res;
+	vec4 butterflyData = imageLoad(butterfly, ivec2(stage, id.y));
+
+	if (bufferNum == 0)
+	{
+		vec2 p = imageLoad(buffer0, ivec2(id.x, butterflyData.z)).xy;
+		vec2 q = imageLoad(buffer0, ivec2(id.x, butterflyData.w)).xy;
+
+		res = p + cmul(butterflyData.xy, q);
+
+		imageStore(buffer1, id, vec4(res.xy, 0, 1));
+	}
+	else
+	{
+		vec2 p = imageLoad(buffer1, ivec2(id.x, butterflyData.z)).xy;
+		vec2 q = imageLoad(buffer1, ivec2(id.x, butterflyData.w)).xy;
+
+		res = p + cmul(butterflyData.xy, q);
+
+		imageStore(buffer0, id, vec4(res.xy, 0, 1));
+	}
+}
+
+void invertAndPermute(ivec2 id)
+{
+	int size = imageSize(buffer0).x;
+
+	float perms[] = {1., -1.};
+	int index = int(mod(id.x + id.y, 2));
+	float perm = perms[index];
+
+	vec2 val = imageLoad(buffer0, id).rg;
+	val = (val / float(size * size)) * perm;
+	imageStore(buffer0, id, vec4(val, 0, 1));
+}
+
+void main()
+{
+	ivec2 id = ivec2(gl_GlobalInvocationID);
+	if (operation == 0)
+		horizontal(id);
+	else if (operation == 1)
+		vertical(id);
+	else if (operation == 2)
+		invertAndPermute(id);
+}

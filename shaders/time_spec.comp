@@ -5,9 +5,13 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(binding = 0, rgba16f) uniform image2D inSpectrum;
-layout(binding = 1, rgba16f) uniform image2D spectrum;
+layout(binding = 1, rgba16f) uniform image2D DyDxTex;
+layout(binding = 2, rgba16f) uniform image2D DzDyxTex;
+layout(binding = 3, rgba16f) uniform image2D DxxDzxTex;
+layout(binding = 4, rgba16f) uniform image2D DyzDzzTex;
 
 layout(location = 0) uniform float time;
+layout(location = 1) uniform int patchSize;
 
 struct complex
 {
@@ -39,11 +43,9 @@ complex cadd(complex x, complex y)
 	return res;
 }
 
-float dispersion(vec2 k)
+complex cscal(complex c0, float scalar)
 {
-	float k_mag = length(k);
-	if (k_mag < 0.0001) k_mag = 0.0001;
-	return sqrt(9.81 * k_mag);
+	return complex(c0.re * scalar, c0.im * scalar);
 }
 
 void main()
@@ -51,20 +53,43 @@ void main()
 	uvec3 id = gl_GlobalInvocationID;
 	vec2 size = imageSize(inSpectrum);
 
-	float x = (id.x * 2 * PI / size.x) - PI;
-	float y = (id.y * 2 * PI / size.y) - PI;
+	float n = id.x - size.x / 2.0;
+	float m = id.y - size.y / 2.0;
+
+	float kx = 2 * PI * n / patchSize;
+	float ky = 2 * PI * m / patchSize;
+
+	float k_mag = length(vec2(kx, ky));
+	if (k_mag < 0.0001) k_mag = 0.0001;
 
 	vec4 inVal = imageLoad(inSpectrum, ivec2(id.xy));
 
 	complex hk = complex(inVal.x, inVal.y);
 	complex hminus_k = complex(inVal.z, inVal.w);
 
-	float disp = dispersion(vec2(x, y));
+	float dispersion = sqrt(9.81 * k_mag);
 
-	hk = cmul(hk, cexp(disp * time));
-	hminus_k = cmul(hminus_k, cexp(-disp * time));
+	hk = cmul(hk, cexp(dispersion * time));
+	hminus_k = cmul(hminus_k, cexp(-dispersion * time));
 
-	complex res = cadd(hk, hminus_k);
+	complex h = cadd(hk, hminus_k);
+	complex ih = complex(-h.im, h.re);
 
-	imageStore(spectrum, ivec2(id.xy), vec4(res.re, res.im, 0, 0));
+	complex dispY = h;
+	complex dispX = cscal(ih, ky / k_mag);
+	complex dispZ = cscal(ih, kx / k_mag);
+
+	complex dispY_dx;
+	complex dispX_dx;
+	complex dispZ_dx;
+
+	complex dispY_dz;
+	complex dispZ_dz;
+
+	// This requires the Hermitian property of two spectrums
+	// Using the property: c = IFFT(FFT(a) + iFFT(b))
+	// a = re(c)  b = im(c)
+	complex DyDx = complex(dispY.re - dispX.im, dispY.im + dispX.re);
+
+	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 0, 0));
 }

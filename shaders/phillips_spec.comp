@@ -6,11 +6,13 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(binding = 0, rgba16f) uniform image2D spectrum;
 
+layout(location = 0) uniform int patchSize;
+
 float phillips(vec2 k)
 {
-	float A = 1.;
+	float A = 20.;
 
-	vec2 wind = vec2(10.0, 5.0);
+	vec2 wind = vec2(10., 20.0);
 	float wind_mag = length(wind);
 	wind = normalize(wind);
 
@@ -32,12 +34,13 @@ void main() {
 
 	ivec2 size = imageSize(spectrum);
 
-	float x = (id.x * 2 * PI / size.x) - PI;
-	float y = (id.y * 2 * PI / size.y) - PI;
+	float n = id.x - size.x / 2.0;
+	float m = id.y - size.y / 2.0;
 
-	vec2 coords = vec2(x, y);
+	float kx = 2 * PI * n / patchSize;
+	float ky = 2 * PI * m / patchSize;
 
-	float ph = sqrt(phillips(coords)) / sqrt(2);
+	float ph = sqrt(phillips(vec2(kx, ky))) / sqrt(2);
 
 	vec4 val = imageLoad(spectrum, ivec2(id.xy));
 

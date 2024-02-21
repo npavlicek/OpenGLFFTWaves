@@ -16,23 +16,24 @@ struct Color
 class Spectrum
 {
 public:
-	void init(int size);
+	void init(int size, int patchSize);
 	void cleanup();
 	void updateSpectrumTexture();
+	void conductFFT();
 	GLuint getTexture()
 	{
 		return spectrumTexture;
 	}
 
 private:
-	int size, log2size;
+	int size, log2size, patchSize;
 	std::vector<int> reverseIndices;
 	std::vector<Color> initialRandomData;
 
 	std::chrono::time_point<std::chrono::system_clock> start;
 
-	GLuint phillipsShader, butterflyShader, conjugateShader, timeSpectrumShader;
-	GLuint butterflyTexture, spectrumTexture, initialSpectrumTexture;
+	GLuint phillipsShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader;
+	GLuint butterflyTexture, spectrumTexture, initialSpectrumTexture, bufferTexture;
 	GLuint reverseIndexBuffer;
 
 	void generateGaussianDist();

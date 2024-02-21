@@ -183,7 +183,7 @@ int main()
 	ImGui_ImplOpenGL3_Init();
 
 	Spectrum spec{};
-	spec.init(256);
+	spec.init(256, 400);
 
 	GLuint texture = spec.getTexture();
 
@@ -209,13 +209,13 @@ int main()
 
 	glUseProgram(texturedRectShader);
 
-	glm::mat4 model{1.f};
+	glm::mat4 model = glm::scale(glm::mat4(1.f), glm::vec3(5.f));
 	glm::mat4 view{1.f};
-	glm::mat4 projection = glm::perspective(glm::radians(60.f), 1280.f / 720.f, 0.1f, 10.f);
+	glm::mat4 projection = glm::perspective(glm::radians(60.f), 1280.f / 720.f, 0.1f, 100.f);
 
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
 
-	float degreesPerSec = 3.f;
+	float degreesPerSec = 0.f;
 
 	glfwSetCursorPos(win, 1280.f / 2, 720.f / 2);
 
@@ -238,6 +238,11 @@ int main()
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
+		model = glm::rotate(model, glm::radians(degreesPerSec * delta), glm::vec3(0, 1, 0));
+
+		spec.updateSpectrumTexture();
+		spec.conductFFT();
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		ImGui_ImplGlfw_NewFrame();
@@ -250,8 +255,6 @@ int main()
 		ImGui::End();
 
 		ImGui::Render();
-
-		spec.updateSpectrumTexture();
 
 		glBindVertexArray(vao);
 
@@ -275,7 +278,6 @@ int main()
 	rect.cleanup();
 	spec.cleanup();
 
-	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &vao);
 
 	ImGui_ImplGlfw_Shutdown();
