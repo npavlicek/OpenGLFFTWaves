@@ -8,41 +8,50 @@ This file is configured to use glslc to compile shaders.
 It also uses cmake to build our application.
 """
 
+args = sys.argv
+do_compile_shaders = False
+
+if len(args) > 1 and args[1] == 'shaders':
+	do_compile_shaders = True
+
 shader_types = [
 	'compute',
 	'vertex',
 	'fragment'
 ]
 
+glslc_opts = '--target-env=opengl -Os -x glsl'
+
 def compile_shaders(type, shaders):
 	print(f'Compiling {type} shaders...')
 	for s in shaders:
 		filename = Path(s).name.split('.')[0]
-		command = f'glslc {s} -o .\\shaders\\compiled\\{type}\\{filename}.spv'
+		command = f'glslc {s} {glslc_opts} -o .\\shaders\\compiled\\{type}\\{filename}.spv'
 		print(command)
 		output = subprocess.run(command, capture_output=True)
 		if output.returncode != 0:
 			print('ERROR: ' + output.stderr.decode())
 	print()
 
-# Create missing directories
-compiled_shader_dir = r'.\shaders\compiled'
-for s in shader_types:
-	dir = Path(f"{compiled_shader_dir}\\{s}")
-	if not dir.exists():
-		print(f"{dir} does not exist. Creating directory...")
-		Path.mkdir(dir, parents=True, exist_ok=True)
-print()
+if do_compile_shaders:
+	# Create missing directories
+	compiled_shader_dir = r'.\shaders\compiled'
+	for s in shader_types:
+		dir = Path(f"{compiled_shader_dir}\\{s}")
+		if not dir.exists():
+			print(f"{dir} does not exist. Creating directory...")
+			Path.mkdir(dir, parents=True, exist_ok=True)
+	print()
 
-# Get list of shaders
-compute_shaders = glob.glob(r".\shaders\*.comp")
-vertex_shaders = glob.glob(r".\shaders\*.vert")
-fragment_shaders = glob.glob(r".\shaders\*.frag")
+	# Get list of shaders
+	compute_shaders = glob.glob(r".\shaders\*.comp")
+	vertex_shaders = glob.glob(r".\shaders\*.vert")
+	fragment_shaders = glob.glob(r".\shaders\*.frag")
 
-# Compile the shaders
-compile_shaders(shader_types[0], compute_shaders)
-compile_shaders(shader_types[1], vertex_shaders)
-compile_shaders(shader_types[2], fragment_shaders)
+	# Compile the shaders
+	compile_shaders(shader_types[0], compute_shaders)
+	compile_shaders(shader_types[1], vertex_shaders)
+	compile_shaders(shader_types[2], fragment_shaders)
 
 # Finally compile the app
 print('Compiling application...')

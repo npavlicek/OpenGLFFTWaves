@@ -1,11 +1,9 @@
 #pragma once
 
-#include <random>
+#include <chrono>
 #include <vector>
 
 #include <glad/gl.h>
-
-#include "Shader.hpp"
 
 struct Color
 {
@@ -15,6 +13,28 @@ struct Color
 	GLfloat a;
 };
 
-std::vector<int> calculateReverseIndices(int size);
+class Spectrum
+{
+public:
+	void init(int size);
+	void cleanup();
+	void updateSpectrumTexture();
+	GLuint getTexture()
+	{
+		return spectrumTexture;
+	}
 
-GLuint genRandDist(int size);
+private:
+	int size, log2size;
+	std::vector<int> reverseIndices;
+	std::vector<Color> initialRandomData;
+
+	std::chrono::time_point<std::chrono::system_clock> start;
+
+	GLuint phillipsShader, butterflyShader, conjugateShader, timeSpectrumShader;
+	GLuint butterflyTexture, spectrumTexture, initialSpectrumTexture;
+	GLuint reverseIndexBuffer;
+
+	void generateGaussianDist();
+	void calculateReverseIndices();
+};

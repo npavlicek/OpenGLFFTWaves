@@ -24,6 +24,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "Rect.hpp"
 #include "Shader.hpp"
 #include "Spectrum.hpp"
 #include "plane.hpp"
@@ -120,14 +121,6 @@ void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
 	}
 }
 
-struct mvp
-{
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 projection;
-	float time;
-};
-
 int main()
 {
 	glfwInit();
@@ -172,68 +165,63 @@ int main()
 
 	std::cout << "Loaded OpenGL " << GLAD_VERSION_MAJOR(version) << "." << GLAD_VERSION_MINOR(version) << std::endl;
 
+	// Enable gl features
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugCallback, nullptr);
 
-	glEnable(GL_CULL_FACE);
+	// glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
 
+	// glFrontFace(GL_CW);
+
+	// Initialzie IMGUI
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
 	ImGui_ImplGlfw_InitForOpenGL(win, true);
 	ImGui_ImplOpenGL3_Init();
 
-	glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+	Spectrum spec{};
+	spec.init(256);
 
-	glEnable(GL_DEPTH_TEST);
+	GLuint texture = spec.getTexture();
 
-	Plane plane{25, 25, 1.f};
-	plane.init();
+	Rect rect;
+	rect.init();
 
+	// Generate vaos and bind
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	GLuint randDist = genRandDist(256);
-
+	// Specify vertex attributes
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), 0);
-
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (GLvoid *)offsetof(vertex, norm));
 
-	std::vector<GLuint> shaders{loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/shader.spv"),
-															loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/shader.spv")};
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, reinterpret_cast<void *>(sizeof(GLfloat) * 3));
 
-	GLuint program = linkProgram(shaders);
+	// Load shader
+	GLuint texturedRectShader =
+			linkProgram({loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/textured_rect.spv"),
+									 loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/textured_rect.spv")});
 
-	glUseProgram(program);
+	glUseProgram(texturedRectShader);
 
-	GLuint mvpBuffer;
-	glGenBuffers(1, &mvpBuffer);
-	glBindBuffer(GL_UNIFORM_BUFFER, mvpBuffer);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, mvpBuffer);
-	glBufferStorage(GL_UNIFORM_BUFFER, sizeof(mvp), NULL, GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT);
-	void *mvpMappedBuffer = glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(mvp),
-																					 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	glm::mat4 model{1.f};
+	glm::mat4 view{1.f};
+	glm::mat4 projection = glm::perspective(glm::radians(60.f), 1280.f / 720.f, 0.1f, 10.f);
 
-	mvp mvpMatrices;
-	mvpMatrices.model = glm::identity<glm::mat4>();
-	mvpMatrices.view = glm::lookAt(glm::vec3(0.f, 5.f, 3.f), glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
-	mvpMatrices.projection = glm::perspective(45.f, 1280.f / 720.f, 0.1f, 100.f);
-	mvpMatrices.time = 0;
-
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-	memcpy(mvpMappedBuffer, &mvpMatrices, sizeof(mvp));
+	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
 
 	float degreesPerSec = 3.f;
 
 	glfwSetCursorPos(win, 1280.f / 2, 720.f / 2);
 
-	auto startOfProgram = std::chrono::system_clock::now();
 	auto startTime = std::chrono::system_clock::now();
+
+	glClearColor(0.f, 0.3f, 0.8f, 1.f);
 
 	while (!glfwWindowShouldClose(win))
 	{
@@ -246,16 +234,9 @@ int main()
 
 		if (i.captureCursor)
 		{
-			mvpMatrices.view = computeViewMatrix(win, delta, 1.f, 5.f);
+			view = computeViewMatrix(win, delta, 1.f, 5.f);
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
-
-		mvpMatrices.model = glm::rotate(mvpMatrices.model, glm::radians(degreesPerSec) * delta, glm::vec3(0, 1, 0));
-
-		std::chrono::duration<float> secondsSinceStart = std::chrono::system_clock::now() - startOfProgram;
-		mvpMatrices.time = secondsSinceStart.count();
-
-		memcpy(mvpMappedBuffer, &mvpMatrices, sizeof(mvp));
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -270,24 +251,29 @@ int main()
 
 		ImGui::Render();
 
-		plane.draw();
+		spec.updateSpectrumTexture();
+
+		glBindVertexArray(vao);
+
+		glUseProgram(texturedRectShader);
+
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
+
+		rect.bind();
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture);
+
+		rect.draw();
+
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(win);
 	}
 
-	plane.destroy();
-
-	glUseProgram(0);
-	glDeleteProgram(program);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glDeleteTextures(1, &randDist);
-
-	glBindBuffer(GL_UNIFORM_BUFFER, mvpBuffer);
-	glUnmapBuffer(GL_UNIFORM_BUFFER);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	glDeleteBuffers(1, &mvpBuffer);
+	rect.cleanup();
+	spec.cleanup();
 
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &vao);

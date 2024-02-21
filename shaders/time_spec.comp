@@ -1,0 +1,70 @@
+#version 460 core
+
+#define PI 3.1415926535897932384626433
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) uniform image2D inSpectrum;
+layout(binding = 1, rgba16f) uniform image2D spectrum;
+
+layout(location = 0) uniform float time;
+
+struct complex
+{
+	float re;
+	float im;
+};
+
+complex cexp(float x)
+{
+	complex res;
+	res.re = cos(x);
+	res.im = sin(x);
+	return res;
+}
+
+complex cmul(complex x, complex y)
+{
+	complex res;
+	res.re = x.re * y.re - x.im * y.im;
+	res.im = x.re * y.im + x.im * y.re;
+	return res;
+}
+
+complex cadd(complex x, complex y)
+{
+	complex res;
+	res.re = x.re + y.re;
+	res.im = x.im + y.im;
+	return res;
+}
+
+float dispersion(vec2 k)
+{
+	float k_mag = length(k);
+	if (k_mag < 0.0001) k_mag = 0.0001;
+	return sqrt(9.81 * k_mag);
+}
+
+void main()
+{
+	uvec3 id = gl_GlobalInvocationID;
+	vec2 size = imageSize(inSpectrum);
+
+	float x = (id.x * 2 * PI / size.x) - PI;
+	float y = (id.y * 2 * PI / size.y) - PI;
+
+	vec4 inVal = imageLoad(inSpectrum, ivec2(id.xy));
+
+	complex hk = complex(inVal.x, inVal.y);
+	complex hminus_k = complex(inVal.z, inVal.w);
+
+	float disp = dispersion(vec2(x, y));
+
+	hk = cmul(hk, cexp(disp * time));
+	hminus_k = cmul(hminus_k, cexp(-disp * time));
+
+	complex res = cadd(hk, hminus_k);
+
+	imageStore(spectrum, ivec2(id.xy), vec4(res.re, res.im, 0, 0));
+}
