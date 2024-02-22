@@ -1,8 +1,5 @@
 #include "plane.hpp"
 
-#include <glm/gtx/string_cast.hpp>
-#include <iostream>
-
 Plane::Plane(int numX, int numY, float interval)
 {
 	this->numX = numX;
@@ -16,21 +13,19 @@ void Plane::init()
 	vertex vertices[numX * numY];
 	int indices[numIndices];
 
-	float offsetX = (numX * interval) / 2;
-	float offsetY = (numY * interval) / 2;
+	float width = numX * interval;
+	float height = numY * interval;
 
-	std::random_device rd;
-	std::normal_distribution<float> nd{0.f, 0.5f};
-	std::mt19937 mt(rd());
-
-	auto randomHeight = [&nd, &mt]() -> float { return nd(mt); };
+	float offsetX = width / 2;
+	float offsetY = height / 2;
 
 	for (int y = 0; y < numY; y++)
 	{
 		for (int x = 0; x < numX; x++)
 		{
 			int vertex = (y * numX + x);
-			vertices[vertex].pos = glm::vec3(interval * x - offsetX, randomHeight(), interval * y - offsetY);
+			vertices[vertex].pos = glm::vec3(interval * x - offsetX, 0, interval * y - offsetY);
+			vertices[vertex].texCoord = glm::vec2(interval * x / width, interval * y / height);
 
 			if (x != numX - 1 && y != numY - 1)
 			{
@@ -43,29 +38,6 @@ void Plane::init()
 				indices[index + 4] = (y + 1) * numX + x;
 				indices[index + 5] = (y + 1) * numX + x + 1;
 			}
-		}
-	}
-
-	for (int y = 0; y < numY; y++)
-	{
-		for (int x = 0; x < numX; x++)
-		{
-			int vertex = (y * numX + x);
-
-			int nextX = (x + 1) % numX;
-			int nextY = y - 1;
-
-			if (nextY < 0)
-				nextY += numY;
-
-			int nextVertX = y * numX + nextX;
-			int nextVertY = nextY * numX + x;
-
-			// x cross z
-			float dy_dx = vertices[nextVertX].pos.y - vertices[vertex].pos.y;
-			float dy_dz = vertices[nextVertY].pos.y - vertices[vertex].pos.y;
-
-			vertices[vertex].norm = glm::normalize(glm::cross(glm::vec3(1, dy_dx, 0.f), glm::vec3(0.f, dy_dz, -1)));
 		}
 	}
 

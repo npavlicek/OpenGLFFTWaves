@@ -19,10 +19,15 @@ public:
 	void init(int size, int patchSize);
 	void cleanup();
 	void updateSpectrumTexture();
-	void conductFFT();
-	GLuint getTexture()
+	void fft();
+	void combineTextures(float scale);
+	GLuint getDisplacementsTex()
 	{
-		return spectrumTexture;
+		return textures[Displacements];
+	}
+	GLuint getDerivativesTex()
+	{
+		return textures[Derivates];
 	}
 
 private:
@@ -32,10 +37,25 @@ private:
 
 	std::chrono::time_point<std::chrono::system_clock> start;
 
-	GLuint phillipsShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader;
-	GLuint butterflyTexture, spectrumTexture, initialSpectrumTexture, bufferTexture;
+	GLuint phillipsShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader, combineShader;
+	GLuint butterflyTexture;
 	GLuint reverseIndexBuffer;
 
+	void dispatchFFT(GLuint spectrum);
 	void generateGaussianDist();
 	void calculateReverseIndices();
+
+	int numTextures = 8;
+	GLuint *textures;
+	enum SpectrumTextures
+	{
+		DyDx,
+		DzDzx,
+		DyxDyz,
+		DxxDzz,
+		Buffer,
+		Displacements,
+		Derivates,
+		InitialSpectrum
+	};
 };

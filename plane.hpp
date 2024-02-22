@@ -1,7 +1,5 @@
 #pragma once
 
-#include <random>
-
 #include <glad/gl.h>
 
 #include <glm/ext.hpp>
@@ -11,7 +9,7 @@
 struct vertex
 {
 	glm::vec3 pos;
-	glm::vec3 norm;
+	glm::vec2 texCoord;
 };
 
 class Plane

@@ -1,0 +1,26 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) uniform image2D DyDxTex;
+layout(binding = 1, rgba16f) uniform image2D DzDzxTex;
+layout(binding = 2, rgba16f) uniform image2D DyxDyzTex;
+layout(binding = 3, rgba16f) uniform image2D DxxDzzTex;
+
+layout(binding = 4, rgba16f) uniform image2D Displacements;
+layout(binding = 5, rgba16f) uniform image2D Derivatives;
+
+layout(location = 0) uniform float scale;
+
+void main()
+{
+	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 DyDx = imageLoad(DyDxTex, id);
+	vec4 DzDzx = imageLoad(DzDzxTex, id);
+	vec4 DyxDyz = imageLoad(DyxDyzTex, id);
+	vec4 DxxDzz = imageLoad(DxxDzzTex, id);
+
+	imageStore(Displacements, id, vec4(DyDx.y * scale, DyDx.x, DzDzx.x * scale, 0));
+	imageStore(Derivatives, id, vec4(DyxDyz.xy, DxxDzz.xy * scale));
+}

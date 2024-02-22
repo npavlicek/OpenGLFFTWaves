@@ -6,9 +6,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(binding = 0, rgba16f) uniform image2D inSpectrum;
 layout(binding = 1, rgba16f) uniform image2D DyDxTex;
-layout(binding = 2, rgba16f) uniform image2D DzDyxTex;
-layout(binding = 3, rgba16f) uniform image2D DxxDzxTex;
-layout(binding = 4, rgba16f) uniform image2D DyzDzzTex;
+layout(binding = 2, rgba16f) uniform image2D DzDzxTex;
+layout(binding = 3, rgba16f) uniform image2D DyxDyzTex;
+layout(binding = 4, rgba16f) uniform image2D DxxDzzTex;
 
 layout(location = 0) uniform float time;
 layout(location = 1) uniform int patchSize;
@@ -73,23 +73,33 @@ void main()
 	hminus_k = cmul(hminus_k, cexp(-dispersion * time));
 
 	complex h = cadd(hk, hminus_k);
+	complex neg_h = complex(-h.re, -h.im);
 	complex ih = complex(-h.im, h.re);
+
+	// to find displacement on axis a multiply by: -i * k_<a> / k_mag
+	// to find derivative on axis a multiply by: i * k_<a>
 
 	complex dispY = h;
 	complex dispX = cscal(ih, ky / k_mag);
 	complex dispZ = cscal(ih, kx / k_mag);
 
-	complex dispY_dx;
-	complex dispX_dx;
-	complex dispZ_dx;
+	complex dispY_dx = cscal(ih, kx);
+	complex dispX_dx = cscal(neg_h, kx * kx / k_mag);
+	complex dispZ_dx = cscal(neg_h, kx * ky / k_mag);
 
-	complex dispY_dz;
-	complex dispZ_dz;
+	complex dispY_dz = cscal(ih, ky);
+	complex dispZ_dz = cscal(neg_h, ky * ky / k_mag);
 
 	// This requires the Hermitian property of two spectrums
 	// Using the property: c = IFFT(FFT(a) + iFFT(b))
 	// a = re(c)  b = im(c)
 	complex DyDx = complex(dispY.re - dispX.im, dispY.im + dispX.re);
+	complex DzDzx = complex(dispZ.re - dispZ_dx.im, dispZ.im + dispZ_dx.re);
+	complex DyxDyz = complex(dispY_dx.re - dispY_dz.im, dispY_dx.im + dispY_dz.re);
+	complex DxxDzz = complex(dispX_dx.re - dispZ_dz.im, dispX_dx.im + dispZ_dz.re);
 
 	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 0, 0));
+	imageStore(DzDzxTex, ivec2(id.xy), vec4(DzDzx.re, DzDzx.im, 0, 0));
+	imageStore(DyxDyzTex, ivec2(id.xy), vec4(DyxDyz.re, DyxDyz.im, 0, 0));
+	imageStore(DxxDzzTex, ivec2(id.xy), vec4(DxxDzz.re, DxxDzz.im, 0, 0));
 }

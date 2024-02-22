@@ -27,25 +27,24 @@ void Spectrum::init(int size, int patchSize)
 	butterflyShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/butterfly.spv")});
 	timeSpectrumShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/time_spec.spv")});
 	fftShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/fft.spv")});
+	combineShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/combine_tex.spv")});
 
 	// Generate all the necessary textures and buffers
-	glGenTextures(1, &initialSpectrumTexture);
-	glBindTexture(GL_TEXTURE_2D, initialSpectrumTexture);
+	textures = new GLuint[numTextures];
+	glGenTextures(numTextures, textures);
+
+	for (int i = 0; i < numTextures - 1; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, textures[i]);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, size, size);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, textures[InitialSpectrum]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, size, size, 0, GL_RGBA, GL_FLOAT, initialRandomData.data());
 	// This is necessary because the default filter is GL_LINEAR_MIPMAP_LINEAR and would result in a "mipmap incomplete"
 	// texture and the compute shader wont accept it.
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glGenTextures(1, &spectrumTexture);
-	glBindTexture(GL_TEXTURE_2D, spectrumTexture);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, size, size);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glGenTextures(1, &bufferTexture);
-	glBindTexture(GL_TEXTURE_2D, bufferTexture);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, size, size);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -65,7 +64,7 @@ void Spectrum::init(int size, int patchSize)
 	glDispatchCompute(log2size, size / 16, 1);
 
 	// spectrum shader
-	glBindImageTexture(0, initialSpectrumTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(0, textures[InitialSpectrum], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glUseProgram(phillipsShader);
 	glUniform1i(0, patchSize);
 	glDispatchCompute(size / 8, size / 8, 1);
@@ -80,27 +79,51 @@ void Spectrum::init(int size, int patchSize)
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
+void Spectrum::combineTextures(float scale)
+{
+	glUseProgram(combineShader);
+	glBindImageTexture(0, textures[DyDx], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(1, textures[DzDzx], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(2, textures[DyxDyz], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(3, textures[DxxDzz], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(4, textures[Displacements], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(5, textures[Derivates], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glUniform1f(0, scale);
+	glDispatchCompute(size / 16, size / 16, 1);
+}
+
 void Spectrum::updateSpectrumTexture()
 {
 	auto time = std::chrono::system_clock::now();
 	auto timeSinceStart = std::chrono::duration_cast<std::chrono::duration<float, std::ratio<1>>>(time - start).count();
 
 	glUseProgram(timeSpectrumShader);
-	glBindImageTexture(0, initialSpectrumTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glBindImageTexture(1, spectrumTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(0, textures[InitialSpectrum], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(1, textures[DyDx], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(2, textures[DzDzx], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(3, textures[DyxDyz], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(4, textures[DxxDzz], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glUniform1f(0, timeSinceStart);
 	glUniform1i(1, patchSize);
 	glDispatchCompute(size / 8, size / 8, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Spectrum::conductFFT()
+void Spectrum::fft()
+{
+	dispatchFFT(textures[DyDx]);
+	dispatchFFT(textures[DzDzx]);
+	dispatchFFT(textures[DyxDyz]);
+	dispatchFFT(textures[DxxDzz]);
+}
+
+void Spectrum::dispatchFFT(GLuint spectrum)
 {
 	glUseProgram(fftShader);
 
 	glBindImageTexture(0, butterflyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glBindImageTexture(1, spectrumTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glBindImageTexture(2, bufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(1, spectrum, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(2, textures[Buffer], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 	int buffer = 0;
 
@@ -139,12 +162,12 @@ void Spectrum::cleanup()
 	glDeleteProgram(conjugateShader);
 	glDeleteProgram(butterflyShader);
 	glDeleteProgram(timeSpectrumShader);
+	glDeleteProgram(fftShader);
+	glDeleteProgram(combineShader);
 
-	glDeleteTextures(1, &spectrumTexture);
+	glDeleteTextures(numTextures, textures);
+	delete textures;
 	glDeleteTextures(1, &butterflyTexture);
-	glDeleteTextures(1, &initialSpectrumTexture);
-	glDeleteTextures(1, &spectrumTexture);
-	glDeleteTextures(1, &bufferTexture);
 
 	glDeleteBuffers(1, &reverseIndexBuffer);
 }

@@ -115,7 +115,7 @@ void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
 		err.append(message);
 		throw std::runtime_error(err);
 	}
-	else
+	else if (severity == GL_DEBUG_SEVERITY_HIGH || severity == GL_DEBUG_SEVERITY_MEDIUM)
 	{
 		std::cout << message << std::endl << std::endl;
 	}
@@ -183,24 +183,37 @@ int main()
 	ImGui_ImplOpenGL3_Init();
 
 	Spectrum spec{};
-	spec.init(256, 400);
+	spec.init(256, 1000);
 
-	GLuint texture = spec.getTexture();
+	GLuint displacementsTex = spec.getDisplacementsTex();
+	GLuint derivatesTex = spec.getDerivativesTex();
+
+	// Generate vaos and bind
+	GLuint texRectVAO;
+	glGenVertexArrays(1, &texRectVAO);
+	glBindVertexArray(texRectVAO);
+
+	Plane waterPlane(200, 200, 0.05f);
+	waterPlane.init();
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, reinterpret_cast<void *>(sizeof(GLfloat) * 3));
 
 	Rect rect;
 	rect.init();
-
-	// Generate vaos and bind
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
 
 	// Specify vertex attributes
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, reinterpret_cast<void *>(sizeof(GLfloat) * 3));
+	// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
+	// glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, reinterpret_cast<void *>(sizeof(GLfloat) *
+	// 3));
+
+	GLuint waterShader = linkProgram({loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
+																		loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/water_shader.spv")});
+
+	glm::mat4 waterModel{1.f};
 
 	// Load shader
 	GLuint texturedRectShader =
@@ -209,19 +222,25 @@ int main()
 
 	glUseProgram(texturedRectShader);
 
-	glm::mat4 model = glm::scale(glm::mat4(1.f), glm::vec3(5.f));
+	glm::mat4 rect1model{1.f};
+	glm::mat4 rect2model = glm::translate(glm::mat4(1.f), glm::vec3(-2.2f, 0.f, 0.f));
 	glm::mat4 view{1.f};
 	glm::mat4 projection = glm::perspective(glm::radians(60.f), 1280.f / 720.f, 0.1f, 100.f);
 
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
 
-	float degreesPerSec = 0.f;
+	glUseProgram(waterShader);
+	glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(waterModel));
+	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
 
 	glfwSetCursorPos(win, 1280.f / 2, 720.f / 2);
 
 	auto startTime = std::chrono::system_clock::now();
 
-	glClearColor(0.f, 0.3f, 0.8f, 1.f);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+
+	float scale = 1.f;
+	bool hideControlsWindow = false;
 
 	while (!glfwWindowShouldClose(win))
 	{
@@ -238,10 +257,9 @@ int main()
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
-		model = glm::rotate(model, glm::radians(degreesPerSec * delta), glm::vec3(0, 1, 0));
-
 		spec.updateSpectrumTexture();
-		spec.conductFFT();
+		spec.fft();
+		spec.combineTextures(scale);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -250,35 +268,71 @@ int main()
 
 		ImGui::NewFrame();
 
-		ImGui::Begin("Model settings");
-		ImGui::SliderFloat("Degrees Per Second", &degreesPerSec, 0.f, 360.f);
+		ImGui::Begin("Spectrum Settings", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::SliderFloat("Scale", &scale, 0.f, 10.f);
 		ImGui::End();
+
+		if (!hideControlsWindow)
+		{
+			ImGui::Begin("Controls", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Text("Press E to release your mouse cursor!");
+			ImGui::Text("Press Esc to close the application");
+			if (ImGui::Button("Close tooltip"))
+				hideControlsWindow = true;
+			ImGui::End();
+		}
 
 		ImGui::Render();
 
-		glBindVertexArray(vao);
+		// Render our textured quads
+		glBindVertexArray(texRectVAO);
 
 		glUseProgram(texturedRectShader);
 
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rect1model));
+		glUniform1f(3, 1.f);
 
 		rect.bind();
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture);
+		glBindTexture(GL_TEXTURE_2D, displacementsTex);
 
 		rect.draw();
+
+		glUniform1f(3, 10.f);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rect2model));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, derivatesTex);
+
+		rect.draw();
+		// End textured quads
+
+		// Begin water plane
+		glUseProgram(waterShader);
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, displacementsTex);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, derivatesTex);
+
+		waterPlane.draw();
+		// end water plane
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(win);
 	}
 
+	waterPlane.destroy();
+
 	rect.cleanup();
 	spec.cleanup();
 
-	glDeleteVertexArrays(1, &vao);
+	glDeleteVertexArrays(1, &texRectVAO);
 
 	ImGui_ImplGlfw_Shutdown();
 	ImGui_ImplOpenGL3_Shutdown();
