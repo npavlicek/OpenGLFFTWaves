@@ -170,10 +170,8 @@ int main()
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugCallback, nullptr);
 
-	// glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
-
-	// glFrontFace(GL_CW);
 
 	// Initialzie IMGUI
 	IMGUI_CHECKVERSION();
@@ -183,7 +181,7 @@ int main()
 	ImGui_ImplOpenGL3_Init();
 
 	Spectrum spec{};
-	spec.init(256, 1000);
+	spec.init(512, 500);
 
 	GLuint displacementsTex = spec.getDisplacementsTex();
 	GLuint derivatesTex = spec.getDerivativesTex();
@@ -193,7 +191,7 @@ int main()
 	glGenVertexArrays(1, &texRectVAO);
 	glBindVertexArray(texRectVAO);
 
-	Plane waterPlane(200, 200, 0.05f);
+	Plane waterPlane(500, 500, 0.03f);
 	waterPlane.init();
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);

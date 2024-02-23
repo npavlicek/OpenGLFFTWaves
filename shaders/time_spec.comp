@@ -60,14 +60,15 @@ void main()
 	float ky = 2 * PI * m / patchSize;
 
 	float k_mag = length(vec2(kx, ky));
-	if (k_mag < 0.0001) k_mag = 0.0001;
+	if (k_mag < 0.000001) k_mag = 0.000001;
 
 	vec4 inVal = imageLoad(inSpectrum, ivec2(id.xy));
 
 	complex hk = complex(inVal.x, inVal.y);
 	complex hminus_k = complex(inVal.z, inVal.w);
 
-	float dispersion = sqrt(9.81 * k_mag);
+	float D = 50;
+	float dispersion = 2 * PI * sqrt(9.81 * k_mag * tanh(k_mag * D));
 
 	hk = cmul(hk, cexp(dispersion * time));
 	hminus_k = cmul(hminus_k, cexp(-dispersion * time));

@@ -10,8 +10,9 @@ Plane::Plane(int numX, int numY, float interval)
 void Plane::init()
 {
 	numIndices = (numX - 1) * (numY - 1) * 6;
-	vertex vertices[numX * numY];
-	int indices[numIndices];
+	int numVertices = numX * numY;
+	vertex *vertices = new vertex[numVertices];
+	int *indices = new int[numIndices];
 
 	float width = numX * interval;
 	float height = numY * interval;
@@ -45,10 +46,13 @@ void Plane::init()
 	glGenBuffers(1, &ebo);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertex) * numVertices, vertices, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * numIndices, indices, GL_STATIC_DRAW);
+
+	delete[] vertices;
+	delete[] indices;
 }
 
 void Plane::draw()

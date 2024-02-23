@@ -37,16 +37,16 @@ void Spectrum::init(int size, int patchSize)
 	{
 		glBindTexture(GL_TEXTURE_2D, textures[i]);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, size, size);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
 	glBindTexture(GL_TEXTURE_2D, textures[InitialSpectrum]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, size, size, 0, GL_RGBA, GL_FLOAT, initialRandomData.data());
 	// This is necessary because the default filter is GL_LINEAR_MIPMAP_LINEAR and would result in a "mipmap incomplete"
 	// texture and the compute shader wont accept it.
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glGenTextures(1, &butterflyTexture);
 	glBindTexture(GL_TEXTURE_2D, butterflyTexture);
