@@ -107,7 +107,6 @@ void GLWaves::loop()
 	auto startTime = std::chrono::system_clock::now();
 
 	float scale = 3.f;
-	bool hideControlsWindow = false;
 	float normalStrength = 12.f;
 	bool simulate = true;
 	int selection = 0;
@@ -159,6 +158,8 @@ void GLWaves::loop()
 
 		ImGui::Begin("Settings", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 
+		ImGui::Text("Press E to release the mouse cursor");
+
 		if (ImGui::CollapsingHeader("Spectrum Textures"))
 		{
 			if (ImGui::Combo("Min/Mag Filter", &inputFormat, "GL_LINEAR\0GL_NEAREST\0"))
@@ -200,16 +201,6 @@ void GLWaves::loop()
 		ImGui::SliderFloat("Normal Strength", &normalStrength, 0.f, 50.f);
 		ImGui::Checkbox("Simulate", &simulate);
 		ImGui::End();
-
-		if (!hideControlsWindow)
-		{
-			ImGui::Begin("Controls", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-			ImGui::Text("Press E to release your mouse cursor!");
-			ImGui::Text("Press Esc to close the application");
-			if (ImGui::Button("Close tooltip"))
-				hideControlsWindow = true;
-			ImGui::End();
-		}
 
 		// DyDx, DzDzx, DyxDyz, DxxDzz, Buffer, Displacements, Derivates,
 		//		InitialSpectrum

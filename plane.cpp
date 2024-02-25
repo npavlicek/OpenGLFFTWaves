@@ -68,7 +68,6 @@ void Plane::init()
 void Plane::draw()
 {
 	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr);
 }
 
