@@ -24,5 +24,5 @@ private:
 	int numX, numY;
 	float interval;
 	int numIndices;
-	GLuint vbo, ebo;
+	GLuint vbo, ebo, vao;
 };

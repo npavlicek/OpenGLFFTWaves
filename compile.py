@@ -8,10 +8,11 @@ This file is configured to use glslc to compile shaders.
 It also uses cmake to build our application.
 """
 
-args = sys.argv
 do_compile_shaders = False
 
-if len(args) > 1 and args[1] == 'shaders':
+res = input("Compile shaders too? (y/n): ")
+
+if (res == 'y' or res == 'Y'):
 	do_compile_shaders = True
 
 shader_types = [
@@ -20,7 +21,7 @@ shader_types = [
 	'fragment'
 ]
 
-glslc_opts = '--target-env=opengl -Os -x glsl'
+glslc_opts = '--target-env=opengl -x glsl'
 
 def compile_shaders(type, shaders):
 	print(f'Compiling {type} shaders...')

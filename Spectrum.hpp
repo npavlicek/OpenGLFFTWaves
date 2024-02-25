@@ -13,21 +13,30 @@ struct Color
 	GLfloat a;
 };
 
+enum SpectrumTextures
+{
+	DyDx,
+	DzDzx,
+	DyxDyz,
+	DxxDzz,
+	Buffer,
+	Displacements,
+	Derivates,
+	InitialSpectrum
+};
+
 class Spectrum
 {
 public:
-	void init(int size, int patchSize);
+	void init(int size, int patchSize, GLenum filter);
 	void cleanup();
 	void updateSpectrumTexture();
 	void fft();
 	void combineTextures(float scale);
-	GLuint getDisplacementsTex()
+	void regen(int size, int patchSize, GLenum filter);
+	GLuint getTexture(SpectrumTextures texType)
 	{
-		return textures[Displacements];
-	}
-	GLuint getDerivativesTex()
-	{
-		return textures[Derivates];
+		return textures[texType];
 	}
 
 private:
@@ -44,18 +53,9 @@ private:
 	void dispatchFFT(GLuint spectrum);
 	void generateGaussianDist();
 	void calculateReverseIndices();
+	void formatTextures(GLenum filter);
+	void genInitDataAndUpload();
 
 	int numTextures = 8;
 	GLuint *textures;
-	enum SpectrumTextures
-	{
-		DyDx,
-		DzDzx,
-		DyxDyz,
-		DxxDzz,
-		Buffer,
-		Displacements,
-		Derivates,
-		InitialSpectrum
-	};
 };

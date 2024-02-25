@@ -99,7 +99,7 @@ void main()
 	complex DyxDyz = complex(dispY_dx.re - dispY_dz.im, dispY_dx.im + dispY_dz.re);
 	complex DxxDzz = complex(dispX_dx.re - dispZ_dz.im, dispX_dx.im + dispZ_dz.re);
 
-	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 0, 0));
+	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 1, 0));
 	imageStore(DzDzxTex, ivec2(id.xy), vec4(DzDzx.re, DzDzx.im, 0, 0));
 	imageStore(DyxDyzTex, ivec2(id.xy), vec4(DyxDyz.re, DyxDyz.im, 0, 0));
 	imageStore(DxxDzzTex, ivec2(id.xy), vec4(DxxDzz.re, DxxDzz.im, 0, 0));

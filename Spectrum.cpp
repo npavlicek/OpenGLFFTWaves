@@ -5,11 +5,10 @@
 #include <iostream>
 #include <random>
 #include <ratio>
-#include <tuple>
 
 #include "Shader.hpp"
 
-void Spectrum::init(int size, int patchSize)
+void Spectrum::init(int size, int patchSize, GLenum filter)
 {
 	this->size = size;
 	this->log2size = static_cast<int>(log2(size));
@@ -31,41 +30,50 @@ void Spectrum::init(int size, int patchSize)
 
 	// Generate all the necessary textures and buffers
 	textures = new GLuint[numTextures];
+
 	glGenTextures(numTextures, textures);
-
-	for (int i = 0; i < numTextures - 1; i++)
-	{
-		glBindTexture(GL_TEXTURE_2D, textures[i]);
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, size, size);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	}
-
-	glBindTexture(GL_TEXTURE_2D, textures[InitialSpectrum]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, size, size, 0, GL_RGBA, GL_FLOAT, initialRandomData.data());
-	// This is necessary because the default filter is GL_LINEAR_MIPMAP_LINEAR and would result in a "mipmap incomplete"
-	// texture and the compute shader wont accept it.
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
 	glGenTextures(1, &butterflyTexture);
-	glBindTexture(GL_TEXTURE_2D, butterflyTexture);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, static_cast<GLsizei>(log2(size)), size);
-
 	glGenBuffers(1, &reverseIndexBuffer);
+
+	formatTextures(filter);
+
+	genInitDataAndUpload();
+}
+
+void Spectrum::regen(int size, int patchSize, GLenum filter)
+{
+	this->size = size;
+	this->patchSize = patchSize;
+	this->log2size = static_cast<int>(log2(size));
+
+	initialRandomData.clear();
+	reverseIndices.clear();
+
+	calculateReverseIndices();
+	generateGaussianDist();
+
+	formatTextures(filter);
+
+	genInitDataAndUpload();
+}
+
+void Spectrum::genInitDataAndUpload()
+{
+	glTextureSubImage2D(textures[InitialSpectrum], 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, initialRandomData.data());
+
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndexBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, reverseIndices.size() * sizeof(int), reverseIndices.data(), GL_STREAM_DRAW);
 
 	// Execute compute shaders
 	// butterfly shader
+	glUseProgram(butterflyShader);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, reverseIndexBuffer);
 	glBindImageTexture(0, butterflyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glUseProgram(butterflyShader);
 	glDispatchCompute(log2size, size / 16, 1);
 
 	// spectrum shader
-	glBindImageTexture(0, textures[InitialSpectrum], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glUseProgram(phillipsShader);
+	glBindImageTexture(0, textures[InitialSpectrum], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glUniform1i(0, patchSize);
 	glDispatchCompute(size / 8, size / 8, 1);
 
@@ -77,6 +85,24 @@ void Spectrum::init(int size, int patchSize)
 	glDispatchCompute(size / 8, size / 8, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+void Spectrum::formatTextures(GLenum filter)
+{
+	for (int i = 0; i < numTextures; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, textures[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, size, size, 0, GL_RGBA, GL_FLOAT, nullptr);
+		// This is necessary because the default filter is GL_LINEAR_MIPMAP_LINEAR and would result in a "mipmap incomplete"
+		// texture and the compute shader wont accept it.
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, butterflyTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, static_cast<GLsizei>(log2(size)), size, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 }
 
 void Spectrum::combineTextures(float scale)
@@ -120,7 +146,6 @@ void Spectrum::fft()
 void Spectrum::dispatchFFT(GLuint spectrum)
 {
 	glUseProgram(fftShader);
-
 	glBindImageTexture(0, butterflyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glBindImageTexture(1, spectrum, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glBindImageTexture(2, textures[Buffer], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -166,8 +191,8 @@ void Spectrum::cleanup()
 	glDeleteProgram(combineShader);
 
 	glDeleteTextures(numTextures, textures);
-	delete textures;
 	glDeleteTextures(1, &butterflyTexture);
+	delete textures;
 
 	glDeleteBuffers(1, &reverseIndexBuffer);
 }

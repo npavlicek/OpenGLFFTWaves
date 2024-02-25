@@ -10,9 +10,9 @@ layout(location = 0) uniform int patchSize;
 
 float phillips(vec2 k)
 {
-	float A = 80.;
+	float A = 50.;
 
-	vec2 wind = vec2(50., 20.0);
+	vec2 wind = vec2(10., 20.0);
 	float wind_mag = length(wind);
 	wind = normalize(wind);
 
@@ -50,5 +50,5 @@ void main() {
 	if (isnan(newR)) newR = 0.0;
 	if (isnan(newG)) newG = 0.0;
 
-	imageStore(spectrum, ivec2(id.xy), vec4(newR, newG, 0, 0));
+	imageStore(spectrum, ivec2(id.xy), vec4(newR, newG, 0, 1));
 }
