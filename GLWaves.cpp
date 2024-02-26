@@ -20,8 +20,8 @@ input i;
 
 void GLWaves::init()
 {
-	windowWidth = 1280;
-	windowHeight = 720;
+	windowWidth = 1600;
+	windowHeight = 900;
 
 	initWindowAndContext();
 
@@ -48,7 +48,7 @@ void GLWaves::initWindowAndContext()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_FALSE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
@@ -67,7 +67,7 @@ void GLWaves::initWindowAndContext()
 	int count;
 	GLFWmonitor **mon = glfwGetMonitors(&count);
 	const GLFWvidmode *vidmode = glfwGetVideoMode(mon[0]);
-	glfwSetWindowPos(window, (vidmode->width - 1280) / 2, (vidmode->height - 720) / 2);
+	glfwSetWindowPos(window, (vidmode->width - windowWidth) / 2, (vidmode->height - windowHeight) / 2);
 
 	glfwShowWindow(window);
 
@@ -86,7 +86,7 @@ void GLWaves::initWindowAndContext()
 void GLWaves::loop()
 {
 	Spectrum spec{};
-	spec.init(512, 500, GL_NEAREST);
+	spec.init(512, 1500);
 
 	spec.updateSpectrumTexture();
 	spec.fft();
@@ -95,7 +95,7 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(500, 500, 0.008f);
+	Plane waterPlane(256, 256, 0.09f);
 	waterPlane.init();
 
 	GLuint waterShader = linkProgram({loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
@@ -112,15 +112,21 @@ void GLWaves::loop()
 	int selection = 0;
 
 	int inputFormat = 0;
-	int inputTexSize = 0;
-	int inputPatchSize = 1000;
+	int inputTexSize = 1;
+	int inputPatchSize = 1500;
 
 	GLenum format = GL_LINEAR;
 	int newSize = 256;
 
+	struct plane_settings
+	{
+		int numX = 256, numY = 256;
+		float interval = 0.09f;
+	} ps;
+
 	glm::mat4 view;
 	glm::mat4 waterModel{1.f};
-	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 50.f);
+	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 200.f);
 
 	glUseProgram(waterShader);
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
@@ -153,8 +159,6 @@ void GLWaves::loop()
 		ImGui_ImplOpenGL3_NewFrame();
 
 		ImGui::NewFrame();
-
-		// ImGui::ShowDemoWindow();
 
 		ImGui::Begin("Settings", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -193,13 +197,29 @@ void GLWaves::loop()
 
 			if (ImGui::Button("Regenerate Textures"))
 			{
-				spec.regen(newSize, inputPatchSize, format);
+				spec.regen(newSize, inputPatchSize);
 			}
 		}
 
-		ImGui::SliderFloat("Scale", &scale, 0.f, 10.f);
-		ImGui::SliderFloat("Normal Strength", &normalStrength, 0.f, 50.f);
-		ImGui::Checkbox("Simulate", &simulate);
+		if (ImGui::CollapsingHeader("Geometry"))
+		{
+			ImGui::Text("Size of one chunk");
+			ImGui::InputScalar("Width", ImGuiDataType_S32, &ps.numX);
+			ImGui::InputScalar("Height", ImGuiDataType_S32, &ps.numY);
+			ImGui::InputFloat("Interval", &ps.interval);
+
+			if (ImGui::Button("Regenerate Geometry"))
+			{
+				waterPlane.regenGeometry(ps.numX, ps.numY, ps.interval);
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Misc"))
+		{
+			ImGui::SliderFloat("Scale", &scale, 0.f, 10.f);
+			ImGui::SliderFloat("Normal Strength", &normalStrength, 0.f, 50.f);
+			ImGui::Checkbox("Simulate", &simulate);
+		}
 		ImGui::End();
 
 		// DyDx, DzDzx, DyxDyz, DxxDzz, Buffer, Displacements, Derivates,

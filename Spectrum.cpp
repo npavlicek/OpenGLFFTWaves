@@ -2,13 +2,14 @@
 
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <random>
 #include <ratio>
 
 #include "Shader.hpp"
 
-void Spectrum::init(int size, int patchSize, GLenum filter)
+void Spectrum::init(int size, int patchSize)
 {
 	this->size = size;
 	this->log2size = static_cast<int>(log2(size));
@@ -35,12 +36,12 @@ void Spectrum::init(int size, int patchSize, GLenum filter)
 	glGenTextures(1, &butterflyTexture);
 	glGenBuffers(1, &reverseIndexBuffer);
 
-	formatTextures(filter);
+	formatTextures();
 
 	genInitDataAndUpload();
 }
 
-void Spectrum::regen(int size, int patchSize, GLenum filter)
+void Spectrum::regen(int size, int patchSize)
 {
 	this->size = size;
 	this->patchSize = patchSize;
@@ -52,7 +53,7 @@ void Spectrum::regen(int size, int patchSize, GLenum filter)
 	calculateReverseIndices();
 	generateGaussianDist();
 
-	formatTextures(filter);
+	formatTextures();
 
 	genInitDataAndUpload();
 }
@@ -87,7 +88,7 @@ void Spectrum::genInitDataAndUpload()
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Spectrum::formatTextures(GLenum filter)
+void Spectrum::formatTextures()
 {
 	for (int i = 0; i < numTextures; i++)
 	{
@@ -95,14 +96,18 @@ void Spectrum::formatTextures(GLenum filter)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, size, size, 0, GL_RGBA, GL_FLOAT, nullptr);
 		// This is necessary because the default filter is GL_LINEAR_MIPMAP_LINEAR and would result in a "mipmap incomplete"
 		// texture and the compute shader wont accept it.
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
 	glBindTexture(GL_TEXTURE_2D, butterflyTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, static_cast<GLsizei>(log2(size)), size, 0, GL_RGBA, GL_FLOAT, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindTexture(GL_TEXTURE_2D, textures[Derivates]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void Spectrum::combineTextures(float scale)
@@ -116,6 +121,9 @@ void Spectrum::combineTextures(float scale)
 	glBindImageTexture(5, textures[Derivates], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glUniform1f(0, scale);
 	glDispatchCompute(size / 16, size / 16, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	glGenerateTextureMipmap(textures[Derivates]);
 }
 
 void Spectrum::updateSpectrumTexture()
@@ -177,6 +185,7 @@ void Spectrum::dispatchFFT(GLuint spectrum)
 
 	// Execute inversion and permutation shader
 	glUniform1i(0, 2);
+	glUniform1i(3, patchSize);
 	glDispatchCompute(size / 16, size / 16, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

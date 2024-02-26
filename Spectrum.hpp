@@ -28,12 +28,12 @@ enum SpectrumTextures
 class Spectrum
 {
 public:
-	void init(int size, int patchSize, GLenum filter);
+	void init(int size, int patchSize);
 	void cleanup();
 	void updateSpectrumTexture();
 	void fft();
 	void combineTextures(float scale);
-	void regen(int size, int patchSize, GLenum filter);
+	void regen(int size, int patchSize);
 	GLuint getTexture(SpectrumTextures texType)
 	{
 		return textures[texType];
@@ -53,7 +53,7 @@ private:
 	void dispatchFFT(GLuint spectrum);
 	void generateGaussianDist();
 	void calculateReverseIndices();
-	void formatTextures(GLenum filter);
+	void formatTextures();
 	void genInitDataAndUpload();
 
 	int numTextures = 8;

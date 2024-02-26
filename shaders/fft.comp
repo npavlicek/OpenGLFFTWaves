@@ -14,6 +14,7 @@ layout(binding = 2, rgba16f) uniform image2D buffer1;
 layout(location = 0) uniform int operation;
 layout(location = 1) uniform int bufferNum;
 layout(location = 2) uniform int stage;
+layout(location = 3) uniform int L;
 
 vec2 cmul(vec2 c0, vec2 c1)
 {

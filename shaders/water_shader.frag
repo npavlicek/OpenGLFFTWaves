@@ -2,14 +2,21 @@
 
 layout(location = 0) in vec3 norm;
 layout(location = 1) in vec3 fragPos;
+layout(location = 2) in vec2 texCoord;
 
 layout(location = 0) out vec4 color;
+
+layout(binding = 1) uniform sampler2D DerivativesTex;
 
 // World Pos
 layout(location = 3) uniform vec3 camPos;
 layout(location = 4) uniform vec3 lightPos;
+layout(location = 5) uniform float normalStrength;
 
 void main() {
+	vec4 derivative = texture(DerivativesTex, texCoord);
+	vec3 norm = normalize(vec3(normalStrength * derivative.x / (1 + derivative.z), 1, normalStrength * derivative.y / (1 + derivative.w)));
+
 	// Frag Space
 	vec3 lightDir = normalize(lightPos - fragPos);
 	vec3 camDir = normalize(camPos - fragPos);

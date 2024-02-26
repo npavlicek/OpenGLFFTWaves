@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 
 char *loadSource(std::string path, int *size)
 {
@@ -32,7 +33,7 @@ GLuint loadShader(GLenum type, std::string path)
 	int size;
 	char *source = loadSource(path, &size);
 
-	glShaderBinary(1, &id, GL_SHADER_BINARY_FORMAT_SPIR_V, source, size);
+	glShaderBinary(1, &id, GL_SHADER_BINARY_FORMAT_SPIR_V, reinterpret_cast<void *>(source), size);
 
 	free(source);
 

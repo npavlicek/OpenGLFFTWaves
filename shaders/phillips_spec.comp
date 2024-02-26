@@ -10,20 +10,21 @@ layout(location = 0) uniform int patchSize;
 
 float phillips(vec2 k)
 {
-	float A = 50.;
+	float A = 1.;
 
-	vec2 wind = vec2(10., 20.0);
+	vec2 wind = vec2(10.0, 20.0);
 	float wind_mag = length(wind);
 	wind = normalize(wind);
 
 	float k_mag = length(k);
+	if (k_mag < 0.00001) k_mag = 0.00001;
 	k = normalize(k);
 
 	float g = 9.81;
 	float L = pow(wind_mag, 2) / g;
 
 	float res = exp(-1/pow(k_mag * L, 2)) / pow(k_mag, 4);
-	res *= pow(abs(dot(wind, k)), 4);
+	res *= pow(abs(dot(wind, k)), 8);
 	res *= A;
 
 	return res;

@@ -60,15 +60,14 @@ void main()
 	float ky = 2 * PI * m / patchSize;
 
 	float k_mag = length(vec2(kx, ky));
-	if (k_mag < 0.000001) k_mag = 0.000001;
+	if (k_mag < 0.00001) k_mag = 0.00001;
 
 	vec4 inVal = imageLoad(inSpectrum, ivec2(id.xy));
 
 	complex hk = complex(inVal.x, inVal.y);
 	complex hminus_k = complex(inVal.z, inVal.w);
 
-	float D = 50;
-	float dispersion = 2 * PI * sqrt(9.81 * k_mag * tanh(k_mag * D));
+	float dispersion = sqrt(9.81 * k_mag + tanh(k_mag * 50.0));
 
 	hk = cmul(hk, cexp(dispersion * time));
 	hminus_k = cmul(hminus_k, cexp(-dispersion * time));
@@ -99,7 +98,7 @@ void main()
 	complex DyxDyz = complex(dispY_dx.re - dispY_dz.im, dispY_dx.im + dispY_dz.re);
 	complex DxxDzz = complex(dispX_dx.re - dispZ_dz.im, dispX_dx.im + dispZ_dz.re);
 
-	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 1, 0));
+	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 0, 0));
 	imageStore(DzDzxTex, ivec2(id.xy), vec4(DzDzx.re, DzDzx.im, 0, 0));
 	imageStore(DyxDyzTex, ivec2(id.xy), vec4(DyxDyz.re, DyxDyz.im, 0, 0));
 	imageStore(DxxDzzTex, ivec2(id.xy), vec4(DxxDzz.re, DxxDzz.im, 0, 0));

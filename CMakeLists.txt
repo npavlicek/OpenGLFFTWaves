@@ -4,7 +4,7 @@ project(OpenGLWaves)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(IMGUI_PATH "./imgui-1.90.2" CACHE STRING "Path to imgui source")
+set(IMGUI_PATH "./imgui" CACHE STRING "Path to imgui source")
 set(GLAD_PATH "./glad" CACHE STRING "Path to glad source")
 
 # find glfw3

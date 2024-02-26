@@ -4,7 +4,6 @@
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 struct vertex
 {
@@ -17,6 +16,7 @@ class Plane
 public:
 	Plane(int numX, int numY, float interval);
 	void init();
+	void regenGeometry(int numX, int numY, float interval);
 	void draw();
 	void destroy();
 
@@ -25,4 +25,6 @@ private:
 	float interval;
 	int numIndices;
 	GLuint vbo, ebo, vao;
+
+	void genGeometry();
 };
