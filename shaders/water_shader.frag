@@ -22,7 +22,7 @@ void main() {
 	vec3 camDir = normalize(camPos - fragPos);
 	vec3 halfway = normalize(lightDir + camDir);
 
-	vec3 spec = pow(clamp(dot(norm, halfway), 0.0, 1.0), 64) * vec3(0.8);
+	vec3 spec = pow(clamp(dot(norm, halfway), 0.0, 1.0), 128) * vec3(0.8);
 	vec3 ambient = vec3(0.0, 0.15, 0.6) * 0.2;
 	vec3 diffuse = clamp(dot(lightDir, norm), 0.0, 1.0) * vec3(0.5);
 
@@ -35,4 +35,5 @@ void main() {
 
 	color = vec4(vec3(0.0, 0.15, 0.3) + diffuse + ambient + spec, 1);
 	//color = vec4(15 * norm.x, norm.y * 0.4, 15 * norm.z, 1);
+	//color = vec4(texCoord, 0, 1);
 }

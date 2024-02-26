@@ -108,6 +108,8 @@ void Spectrum::formatTextures()
 	glBindTexture(GL_TEXTURE_2D, textures[Derivates]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glObjectLabel(GL_TEXTURE, textures[Derivates], 12, "Derivatives");
 }
 
 void Spectrum::combineTextures(float scale)

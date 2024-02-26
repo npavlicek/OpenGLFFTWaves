@@ -14,14 +14,15 @@ struct vertex
 class Plane
 {
 public:
-	Plane(int numX, int numY, float interval);
+	Plane(int sqrtSize, float interval, int sqrtInstance);
 	void init();
-	void regenGeometry(int numX, int numY, float interval);
+	void regenGeometry(int sqrtSize, float interval, int sqrtInstance);
 	void draw();
 	void destroy();
 
 private:
 	int numX, numY;
+	int instances;
 	float interval;
 	int numIndices;
 	GLuint vbo, ebo, vao;

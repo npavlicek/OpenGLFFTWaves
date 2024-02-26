@@ -1,9 +1,11 @@
 #include "GLWaves.hpp"
 
+#include <cstdint>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/trigonometric.hpp>
 #include <iostream>
 #include <stdexcept>
+#include <stdint.h>
 #include <string>
 
 #include <GLFW/glfw3.h>
@@ -95,7 +97,7 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(256, 256, 0.09f);
+	Plane waterPlane(256, 0.09f, 4);
 	waterPlane.init();
 
 	GLuint waterShader = linkProgram({loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
@@ -106,7 +108,7 @@ void GLWaves::loop()
 	auto constStartTime = std::chrono::system_clock::now();
 	auto startTime = std::chrono::system_clock::now();
 
-	float scale = 3.f;
+	float scale = 1.f;
 	float normalStrength = 12.f;
 	bool simulate = true;
 	int selection = 0;
@@ -115,8 +117,10 @@ void GLWaves::loop()
 	int inputTexSize = 1;
 	int inputPatchSize = 1500;
 
+	float texCoordScale = 1.004f;
+
 	GLenum format = GL_LINEAR;
-	int newSize = 256;
+	int newSize = 512;
 
 	struct plane_settings
 	{
@@ -126,10 +130,12 @@ void GLWaves::loop()
 
 	glm::mat4 view;
 	glm::mat4 waterModel{1.f};
-	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 200.f);
+	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 1000.f);
 
 	glUseProgram(waterShader);
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
+	glUniform1i(7, 2);
+	glUniform1f(8, (256.f * 0.09f) - 0.09f);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -142,7 +148,7 @@ void GLWaves::loop()
 
 		if (i.captureCursor)
 		{
-			view = computeViewMatrix(window, delta, 1.f, 5.f);
+			view = computeViewMatrix(window, delta, 1.f, 10.f);
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
@@ -210,7 +216,7 @@ void GLWaves::loop()
 
 			if (ImGui::Button("Regenerate Geometry"))
 			{
-				waterPlane.regenGeometry(ps.numX, ps.numY, ps.interval);
+				// waterPlane.regenGeometry(ps.numX, ps.numY, ps.interval);
 			}
 		}
 
@@ -218,12 +224,10 @@ void GLWaves::loop()
 		{
 			ImGui::SliderFloat("Scale", &scale, 0.f, 10.f);
 			ImGui::SliderFloat("Normal Strength", &normalStrength, 0.f, 50.f);
+			ImGui::SliderFloat("Tex Coord Scale", &texCoordScale, 1.f, 50.f);
 			ImGui::Checkbox("Simulate", &simulate);
 		}
 		ImGui::End();
-
-		// DyDx, DzDzx, DyxDyz, DxxDzz, Buffer, Displacements, Derivates,
-		//		InitialSpectrum
 
 		const char *selections = "DyDx\0DzDzx\0DyxDyz\0DxxDzz\0Buffer\0Displacements\0Derivatices\0Initial Spectrum\0";
 
@@ -241,6 +245,7 @@ void GLWaves::loop()
 		glUniform3f(3, camPos.x, camPos.y, camPos.z);
 		glUniform3f(4, 20.f, 5.f, 2.f);
 		glUniform1f(5, normalStrength);
+		glUniform1f(6, texCoordScale);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, displacementsTex);

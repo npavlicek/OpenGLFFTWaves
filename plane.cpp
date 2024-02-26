@@ -1,10 +1,13 @@
 #include "plane.hpp"
 
-Plane::Plane(int numX, int numY, float interval)
+#include <iostream>
+
+Plane::Plane(int sqrtSize, float interval, int sqrtInstance)
 {
-	this->numX = numX;
-	this->numY = numY;
+	this->numX = sqrtSize;
+	this->numY = sqrtSize;
 	this->interval = interval;
+	this->instances = sqrtInstance * sqrtInstance;
 }
 
 void Plane::init()
@@ -61,6 +64,9 @@ void Plane::genGeometry()
 		}
 	}
 
+	int i = numX * numY - 1;
+	std::cout << vertices[i].texCoord.x << " " << vertices[i].texCoord.y << std::endl;
+
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertex) * numVertices, vertices, GL_STATIC_DRAW);
 
@@ -71,11 +77,12 @@ void Plane::genGeometry()
 	delete[] indices;
 }
 
-void Plane::regenGeometry(int numX, int numY, float interval)
+void Plane::regenGeometry(int sqrtSize, float interval, int sqrtInstance)
 {
-	this->numX = numX;
-	this->numY = numY;
+	this->numX = sqrtSize;
+	this->numY = sqrtSize;
 	this->interval = interval;
+	this->instances = sqrtInstance * sqrtInstance;
 
 	genGeometry();
 }
@@ -83,7 +90,8 @@ void Plane::regenGeometry(int numX, int numY, float interval)
 void Plane::draw()
 {
 	glBindVertexArray(vao);
-	glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr);
+	// glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr);
+	glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr, instances);
 }
 
 void Plane::destroy()
