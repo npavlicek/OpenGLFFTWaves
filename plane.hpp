@@ -5,27 +5,20 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
-struct vertex
-{
-	glm::vec3 pos;
-	glm::vec2 texCoord;
-};
-
 class Plane
 {
 public:
-	Plane(int sqrtSize, float interval, int sqrtInstance);
+	Plane(float size, int sqrtInstances);
 	void init();
-	void regenGeometry(int sqrtSize, float interval, int sqrtInstance);
+	void regenGeometry(float size, int sqrtInstances);
 	void draw();
 	void destroy();
 
 private:
-	int numX, numY;
-	int instances;
-	float interval;
-	int numIndices;
-	GLuint vbo, ebo, vao;
+	int instances, sqrtInstances, numVertices, startLOD;
+	float size;
+	GLuint vbo, vao;
+	GLuint offsetsBuffer;
 
 	void genGeometry();
 };

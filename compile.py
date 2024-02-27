@@ -18,7 +18,9 @@ if (res == 'y' or res == 'Y'):
 shader_types = [
 	'compute',
 	'vertex',
-	'fragment'
+	'fragment',
+	'tcs',
+	'tes'
 ]
 
 glslc_opts = '--target-env=opengl -x glsl'
@@ -45,14 +47,19 @@ if do_compile_shaders:
 	print()
 
 	# Get list of shaders
-	compute_shaders = glob.glob(r".\shaders\*.comp")
-	vertex_shaders = glob.glob(r".\shaders\*.vert")
-	fragment_shaders = glob.glob(r".\shaders\*.frag")
+	compute_shaders = glob.glob(r".\shaders\compute\*.comp")
+	vertex_shaders = glob.glob(r".\shaders\vertex\*.vert")
+	fragment_shaders = glob.glob(r".\shaders\fragment\*.frag")
+	tcs_shaders = glob.glob(r".\shaders\tessellation\*.tesc")
+	tes_shaders = glob.glob(r".\shaders\tessellation\*.tese")
+
 
 	# Compile the shaders
 	compile_shaders(shader_types[0], compute_shaders)
 	compile_shaders(shader_types[1], vertex_shaders)
 	compile_shaders(shader_types[2], fragment_shaders)
+	compile_shaders(shader_types[3], tcs_shaders)
+	compile_shaders(shader_types[4], tes_shaders)
 
 # Finally compile the app
 print('Compiling application...')

@@ -97,7 +97,7 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(256, 0.09f, 4);
+	Plane waterPlane(256.f, 2);
 	waterPlane.init();
 
 	GLuint waterShader = linkProgram({loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
@@ -117,7 +117,7 @@ void GLWaves::loop()
 	int inputTexSize = 1;
 	int inputPatchSize = 1500;
 
-	float texCoordScale = 1.004f;
+	float texCoordScale = 1.f;
 
 	GLenum format = GL_LINEAR;
 	int newSize = 512;
@@ -134,8 +134,6 @@ void GLWaves::loop()
 
 	glUseProgram(waterShader);
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
-	glUniform1i(7, 2);
-	glUniform1f(8, (256.f * 0.09f) - 0.09f);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -301,6 +299,10 @@ glm::mat4 GLWaves::computeViewMatrix(GLFWwindow *win, float delta, float mouseSp
 		camPos -= glm::cross(dir, up) * camSpeed * delta;
 	if (i.d)
 		camPos += glm::cross(dir, up) * camSpeed * delta;
+	if (i.q)
+		camPos += up * camSpeed * delta;
+	if (i.c)
+		camPos += -up * camSpeed * delta;
 
 	return glm::lookAt(camPos, camPos + dir, up);
 }
@@ -349,6 +351,16 @@ void GLWaves::keyCallback(GLFWwindow *window, int key, int scancode, int action,
 		i.d = true;
 	else if (key == GLFW_KEY_D && action == GLFW_RELEASE)
 		i.d = false;
+
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+		i.q = true;
+	else if (key == GLFW_KEY_Q && action == GLFW_RELEASE)
+		i.q = false;
+
+	if (key == GLFW_KEY_C && action == GLFW_PRESS)
+		i.c = true;
+	else if (key == GLFW_KEY_C && action == GLFW_RELEASE)
+		i.c = false;
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)
 	{
