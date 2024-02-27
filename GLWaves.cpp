@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 #include <iostream>
 #include <stdexcept>
@@ -38,7 +39,7 @@ void GLWaves::init()
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugCallback, nullptr);
 
-	glEnable(GL_CULL_FACE);
+	// glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -97,11 +98,19 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(256.f, 2);
+	Plane waterPlane(256.f, 20);
 	waterPlane.init();
 
-	GLuint waterShader = linkProgram({loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
-																		loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/water_shader.spv")});
+	// clang-format off
+	std::vector<GLuint> waterShaders = {
+		loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
+		loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/water_shader.spv"),
+		loadShader(GL_TESS_CONTROL_SHADER, "shaders/compiled/tcs/waterLOD.spv"),
+		loadShader(GL_TESS_EVALUATION_SHADER, "shaders/compiled/tes/waterLOD.spv")
+	};
+	// clang-format on
+
+	GLuint waterShaderProgram = linkProgram(waterShaders);
 
 	glfwSetCursorPos(window, 1280.f / 2, 720.f / 2);
 
@@ -129,10 +138,10 @@ void GLWaves::loop()
 	} ps;
 
 	glm::mat4 view;
-	glm::mat4 waterModel{1.f};
+	glm::mat4 waterModel = glm::identity<glm::mat4>();
 	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 1000.f);
 
-	glUseProgram(waterShader);
+	glUseProgram(waterShaderProgram);
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
 
 	while (!glfwWindowShouldClose(window))
@@ -237,7 +246,7 @@ void GLWaves::loop()
 		ImGui::Render();
 
 		// Begin water plane
-		glUseProgram(waterShader);
+		glUseProgram(waterShaderProgram);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(waterModel));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
 		glUniform3f(3, camPos.x, camPos.y, camPos.z);

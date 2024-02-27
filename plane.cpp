@@ -50,8 +50,8 @@ void Plane::genGeometry()
 
 	vertex *vertices = new vertex[numVertices];
 
-	float interval = size / (startLOD - 1);
-	float texInterval = 1.0 / (startLOD - 1);
+	float interval = size / startLOD;
+	float texInterval = 1.0 / startLOD;
 
 	for (int i = 0; i < startLOD; i++)
 	{
@@ -59,13 +59,19 @@ void Plane::genGeometry()
 		{
 			int index = (j * startLOD + i) * 4;
 
-			vertices[index] = vertex{glm::vec3{i * interval, 0.f, j * interval}, glm::vec2{i * texInterval, j * texInterval}};
-			vertices[index + 1] = vertex{glm::vec3{i * interval, 0.f, j * interval - interval},
-																	 glm::vec2{i * texInterval, j * texInterval + texInterval}};
-			vertices[index + 2] = vertex{glm::vec3{i * interval + interval, 0.f, j * interval - interval},
-																	 glm::vec2{i * texInterval + texInterval, j * texInterval + texInterval}};
+			// clang-format off
+			vertices[index] = vertex{glm::vec3{i * interval, 0.f, j * interval},
+								glm::vec2{i * texInterval, 1 - j * texInterval}};
+
+			vertices[index + 1] = vertex{glm::vec3{i * interval, 0.f, j * interval + interval},
+									glm::vec2{i * texInterval, 1 - j * texInterval - texInterval}};
+
+			vertices[index + 2] = vertex{glm::vec3{i * interval + interval, 0.f, j * interval + interval},
+									glm::vec2{i * texInterval + texInterval, 1 - j * texInterval - texInterval}};
+
 			vertices[index + 3] = vertex{glm::vec3{i * interval + interval, 0.f, j * interval},
-																	 glm::vec2{i * texInterval + texInterval, j * texInterval}};
+									glm::vec2{i * texInterval + texInterval, 1 - j * texInterval}};
+			// clang-format on
 		}
 	}
 
@@ -107,6 +113,7 @@ void Plane::draw()
 	glBindVertexArray(vao);
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
 	glDrawArraysInstanced(GL_PATCHES, 0, numVertices, instances);
+	// glDrawArrays(GL_PATCHES, 0, numVertices);
 }
 
 void Plane::destroy()

@@ -1,8 +1,7 @@
 #version 460 core
 
-layout(location = 0) in vec3 norm;
+layout(location = 0) in vec2 texCoord;
 layout(location = 1) in vec3 fragPos;
-layout(location = 2) in vec2 texCoord;
 
 layout(location = 0) out vec4 color;
 
@@ -33,7 +32,7 @@ void main() {
 	ambient *= light_color;
 	diffuse *= light_color;
 
-	//color = vec4(vec3(0.0, 0.15, 0.3) + diffuse + ambient + spec, 1);
+	color = vec4(vec3(0.0, 0.15, 0.3) + diffuse + ambient + spec, 1);
 	//color = vec4(15 * norm.x, norm.y * 0.4, 15 * norm.z, 1);
-	color = vec4(texCoord, 0, 1);
+	//color = vec4(texCoord, 0, 1);
 }
