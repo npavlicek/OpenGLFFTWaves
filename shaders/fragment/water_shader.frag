@@ -21,9 +21,11 @@ void main() {
 	vec3 camDir = normalize(camPos - fragPos);
 	vec3 halfway = normalize(lightDir + camDir);
 
+	vec3 diffuseDir = normalize(vec3(10.0, 10.0, 0.0));
+
 	vec3 spec = pow(clamp(dot(norm, halfway), 0.0, 1.0), 128) * vec3(0.8);
 	vec3 ambient = vec3(0.0, 0.15, 0.6) * 0.2;
-	vec3 diffuse = clamp(dot(lightDir, norm), 0.0, 1.0) * vec3(0.5);
+	vec3 diffuse = clamp(dot(diffuseDir, norm), 0.0, 1.0) * vec3(0.5);
 
 	//vec3 light_color = vec3(0.5, 0.3, 0.0);
 	vec3 light_color = vec3(0.5);

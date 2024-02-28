@@ -16,13 +16,13 @@ void main()
 
 	if (gl_InvocationID == 0)
 	{
-		gl_TessLevelOuter[0] = 20;
-		gl_TessLevelOuter[1] = 20;
-		gl_TessLevelOuter[2] = 20;
-		gl_TessLevelOuter[3] = 20;
+		gl_TessLevelOuter[0] = 5;
+		gl_TessLevelOuter[1] = 5;
+		gl_TessLevelOuter[2] = 5;
+		gl_TessLevelOuter[3] = 5;
 
-		gl_TessLevelInner[0] = 20;
-		gl_TessLevelInner[1] = 20;
+		gl_TessLevelInner[0] = 5;
+		gl_TessLevelInner[1] = 5;
 	}
 }
 

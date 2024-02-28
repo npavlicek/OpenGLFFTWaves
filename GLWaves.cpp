@@ -89,7 +89,7 @@ void GLWaves::initWindowAndContext()
 void GLWaves::loop()
 {
 	Spectrum spec{};
-	spec.init(512, 1500);
+	spec.init(256, 200);
 
 	spec.updateSpectrumTexture();
 	spec.fft();
@@ -98,7 +98,7 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(256.f, 20);
+	Plane waterPlane(8.f, 20);
 	waterPlane.init();
 
 	// clang-format off
@@ -123,8 +123,8 @@ void GLWaves::loop()
 	int selection = 0;
 
 	int inputFormat = 0;
-	int inputTexSize = 1;
-	int inputPatchSize = 1500;
+	int inputTexSize = 0;
+	int inputPatchSize = 200;
 
 	float texCoordScale = 1.f;
 

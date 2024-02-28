@@ -46,7 +46,7 @@ private:
 
 	std::chrono::time_point<std::chrono::system_clock> start;
 
-	GLuint phillipsShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader, combineShader;
+	GLuint jonswapShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader, combineShader;
 	GLuint butterflyTexture;
 	GLuint reverseIndexBuffer;
 

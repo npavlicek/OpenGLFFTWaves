@@ -76,14 +76,12 @@ void vertical(ivec2 id)
 
 void invertAndPermute(ivec2 id)
 {
-	int size = imageSize(buffer0).x;
-
 	float perms[] = {1., -1.};
 	int index = int(mod(id.x + id.y, 2));
 	float perm = perms[index];
 
 	vec2 val = imageLoad(buffer0, id).rg;
-	val = (val / float(size * size)) * perm;
+	val = (val / float(L * L)) * perm;
 	imageStore(buffer0, id, vec4(val, 0, 1));
 }
 

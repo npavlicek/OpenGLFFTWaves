@@ -19,5 +19,5 @@ void main()
 
 	outTexCoord = texCoord / texCoordScale;
 	fragPos = vec3(model * vec4(offsetPos, 1));
-	gl_Position = vec4(pos.x + offset.x, pos.y, pos.z + offset.y, 1);
+	gl_Position = vec4(offsetPos, 1);
 }

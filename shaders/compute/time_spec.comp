@@ -60,7 +60,7 @@ void main()
 	float ky = 2 * PI * m / patchSize;
 
 	float k_mag = length(vec2(kx, ky));
-	if (k_mag < 0.00001) k_mag = 0.00001;
+	if (k_mag < 0.00000001) k_mag = 0.00000001;
 
 	vec4 inVal = imageLoad(inSpectrum, ivec2(id.xy));
 

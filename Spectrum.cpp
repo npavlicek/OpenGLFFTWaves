@@ -22,7 +22,7 @@ void Spectrum::init(int size, int patchSize)
 	generateGaussianDist();
 
 	// Load all the shaders
-	phillipsShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/phillips_spec.spv")});
+	jonswapShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/jonswap_spec.spv")});
 	conjugateShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/conjugate.spv")});
 	butterflyShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/butterfly.spv")});
 	timeSpectrumShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/time_spec.spv")});
@@ -73,7 +73,7 @@ void Spectrum::genInitDataAndUpload()
 	glDispatchCompute(log2size, size / 16, 1);
 
 	// spectrum shader
-	glUseProgram(phillipsShader);
+	glUseProgram(jonswapShader);
 	glBindImageTexture(0, textures[InitialSpectrum], 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glUniform1i(0, patchSize);
 	glDispatchCompute(size / 8, size / 8, 1);
@@ -194,7 +194,7 @@ void Spectrum::dispatchFFT(GLuint spectrum)
 
 void Spectrum::cleanup()
 {
-	glDeleteProgram(phillipsShader);
+	glDeleteProgram(jonswapShader);
 	glDeleteProgram(conjugateShader);
 	glDeleteProgram(butterflyShader);
 	glDeleteProgram(timeSpectrumShader);
