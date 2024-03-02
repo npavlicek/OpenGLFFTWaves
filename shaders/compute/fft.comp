@@ -2,9 +2,9 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 0, rgba16f) uniform image2D butterfly;
-layout(binding = 1, rgba16f) uniform image2D buffer0;
-layout(binding = 2, rgba16f) uniform image2D buffer1;
+layout(binding = 0, rgba32f) uniform image2D butterfly;
+layout(binding = 1, rgba32f) uniform image2D buffer0;
+layout(binding = 2, rgba32f) uniform image2D buffer1;
 
 /**
 0 = horizontal
@@ -14,7 +14,6 @@ layout(binding = 2, rgba16f) uniform image2D buffer1;
 layout(location = 0) uniform int operation;
 layout(location = 1) uniform int bufferNum;
 layout(location = 2) uniform int stage;
-layout(location = 3) uniform int L;
 
 vec2 cmul(vec2 c0, vec2 c1)
 {
@@ -76,12 +75,14 @@ void vertical(ivec2 id)
 
 void invertAndPermute(ivec2 id)
 {
+	float size = imageSize(buffer0).y;
+
 	float perms[] = {1., -1.};
 	int index = int(mod(id.x + id.y, 2));
 	float perm = perms[index];
 
 	vec2 val = imageLoad(buffer0, id).rg;
-	val = (val / float(L * L)) * perm;
+	val = (val / float(size * size)) * perm;
 	imageStore(buffer0, id, vec4(val, 0, 1));
 }
 

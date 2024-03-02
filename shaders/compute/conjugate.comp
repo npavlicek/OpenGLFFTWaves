@@ -2,16 +2,21 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(binding = 0, rgba16f) uniform image2D spectrum;
+layout(binding = 0, rgba32f) uniform image2D spectrum;
 
 void main()
 {
 	uvec2 id = gl_GlobalInvocationID.xy;
 
-	ivec2 size = imageSize(spectrum);
+	float size = imageSize(spectrum).y;
 
 	vec4 k = imageLoad(spectrum, ivec2(id));
-	vec4 k_minus = imageLoad(spectrum, ivec2(mod(size.x - id.x, size.x), mod(size.y - id.y, size.y)));
+	vec4 k_neg = imageLoad(spectrum, ivec2(size - id.x, size - id.y));
 
-	imageStore(spectrum, ivec2(id), vec4(k.xy, k_minus.x, -k_minus.y));
+	if (isnan(k.x)) k.x = 0;
+	if (isnan(k.y)) k.y = 0;
+	if (isnan(k_neg.x)) k_neg.x = 0;
+	if (isnan(k_neg.y)) k_neg.y = 0;
+
+	imageStore(spectrum, ivec2(id), vec4(k.xy, k_neg.x, -k_neg.y));
 }

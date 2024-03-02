@@ -1,6 +1,7 @@
 #include "GLWaves.hpp"
 
 #include <cstdint>
+#include <fstream>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
@@ -89,16 +90,12 @@ void GLWaves::initWindowAndContext()
 void GLWaves::loop()
 {
 	Spectrum spec{};
-	spec.init(256, 200);
-
-	spec.updateSpectrumTexture();
-	spec.fft();
-	spec.combineTextures(1.0);
+	spec.init(256, 800);
 
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(8.f, 20);
+	Plane waterPlane(64.f, 20);
 	waterPlane.init();
 
 	// clang-format off
@@ -118,13 +115,14 @@ void GLWaves::loop()
 	auto startTime = std::chrono::system_clock::now();
 
 	float scale = 1.f;
+	float specScale = 1.f;
 	float normalStrength = 12.f;
 	bool simulate = true;
 	int selection = 0;
 
 	int inputFormat = 0;
 	int inputTexSize = 0;
-	int inputPatchSize = 200;
+	int inputPatchSize = 250;
 
 	float texCoordScale = 1.f;
 
@@ -208,9 +206,11 @@ void GLWaves::loop()
 
 			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &inputPatchSize);
 
+			ImGui::SliderFloat("Spectrum Scale", &specScale, 1.f, 100.f);
+
 			if (ImGui::Button("Regenerate Textures"))
 			{
-				spec.regen(newSize, inputPatchSize);
+				spec.regen(newSize, inputPatchSize, specScale);
 			}
 		}
 
@@ -240,7 +240,7 @@ void GLWaves::loop()
 
 		ImGui::Begin("Debug Image", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 		ImGui::Combo("Select Image", &selection, selections);
-		ImGui::Image(reinterpret_cast<void *>(spec.getTexture((SpectrumTextures)selection)), ImVec2(256.f, 256.f));
+		ImGui::Image(reinterpret_cast<void *>(spec.getTexture((SpectrumTextures)selection)), ImVec2(512.f, 512.f));
 		ImGui::End();
 
 		ImGui::Render();

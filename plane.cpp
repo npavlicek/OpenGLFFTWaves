@@ -113,7 +113,6 @@ void Plane::draw()
 	glBindVertexArray(vao);
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
 	glDrawArraysInstanced(GL_PATCHES, 0, numVertices, instances);
-	// glDrawArrays(GL_PATCHES, 0, numVertices);
 }
 
 void Plane::destroy()

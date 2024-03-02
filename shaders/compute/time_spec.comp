@@ -4,11 +4,11 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(binding = 0, rgba16f) uniform image2D inSpectrum;
-layout(binding = 1, rgba16f) uniform image2D DyDxTex;
-layout(binding = 2, rgba16f) uniform image2D DzDzxTex;
-layout(binding = 3, rgba16f) uniform image2D DyxDyzTex;
-layout(binding = 4, rgba16f) uniform image2D DxxDzzTex;
+layout(binding = 0, rgba32f) uniform image2D inSpectrum;
+layout(binding = 1, rgba32f) uniform image2D DyDxTex;
+layout(binding = 2, rgba32f) uniform image2D DzDzxTex;
+layout(binding = 3, rgba32f) uniform image2D DyxDyzTex;
+layout(binding = 4, rgba32f) uniform image2D DxxDzzTex;
 
 layout(location = 0) uniform float time;
 layout(location = 1) uniform int patchSize;
@@ -56,18 +56,18 @@ void main()
 	float n = id.x - size.x / 2.0;
 	float m = id.y - size.y / 2.0;
 
-	float kx = 2 * PI * n / patchSize;
-	float ky = 2 * PI * m / patchSize;
+	float kx = 2.0 * PI * n / patchSize;
+	float ky = 2.0 * PI * m / patchSize;
 
 	float k_mag = length(vec2(kx, ky));
-	if (k_mag < 0.00000001) k_mag = 0.00000001;
+	if (k_mag < 0.00001) k_mag = 0.00001;
 
 	vec4 inVal = imageLoad(inSpectrum, ivec2(id.xy));
 
 	complex hk = complex(inVal.x, inVal.y);
 	complex hminus_k = complex(inVal.z, inVal.w);
 
-	float dispersion = sqrt(9.81 * k_mag + tanh(k_mag * 50.0));
+	float dispersion = sqrt(9.81 * k_mag);
 
 	hk = cmul(hk, cexp(dispersion * time));
 	hminus_k = cmul(hminus_k, cexp(-dispersion * time));
@@ -98,8 +98,8 @@ void main()
 	complex DyxDyz = complex(dispY_dx.re - dispY_dz.im, dispY_dx.im + dispY_dz.re);
 	complex DxxDzz = complex(dispX_dx.re - dispZ_dz.im, dispX_dx.im + dispZ_dz.re);
 
-	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 0, 0));
-	imageStore(DzDzxTex, ivec2(id.xy), vec4(DzDzx.re, DzDzx.im, 0, 0));
-	imageStore(DyxDyzTex, ivec2(id.xy), vec4(DyxDyz.re, DyxDyz.im, 0, 0));
-	imageStore(DxxDzzTex, ivec2(id.xy), vec4(DxxDzz.re, DxxDzz.im, 0, 0));
+	imageStore(DyDxTex, ivec2(id.xy), vec4(DyDx.re, DyDx.im, 0, 1));
+	imageStore(DzDzxTex, ivec2(id.xy), vec4(DzDzx.re, DzDzx.im, 0, 1));
+	imageStore(DyxDyzTex, ivec2(id.xy), vec4(DyxDyz.re, DyxDyz.im, 0, 1));
+	imageStore(DxxDzzTex, ivec2(id.xy), vec4(DxxDzz.re, DxxDzz.im, 0, 1));
 }

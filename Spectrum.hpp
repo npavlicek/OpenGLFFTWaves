@@ -33,7 +33,7 @@ public:
 	void updateSpectrumTexture();
 	void fft();
 	void combineTextures(float scale);
-	void regen(int size, int patchSize);
+	void regen(int size, int patchSize, float scale);
 	GLuint getTexture(SpectrumTextures texType)
 	{
 		return textures[texType];
@@ -41,18 +41,20 @@ public:
 
 private:
 	int size, log2size, patchSize;
+	float scale;
 	std::vector<int> reverseIndices;
-	std::vector<Color> initialRandomData;
+	Color *initialSpectrum;
 
 	std::chrono::time_point<std::chrono::system_clock> start;
 
-	GLuint jonswapShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader, combineShader;
+	GLuint jonswapShader, butterflyShader, conjugateShader, timeSpectrumShader, fftShader, combineShader, phillipsShader;
 	GLuint butterflyTexture;
 	GLuint reverseIndexBuffer;
 
 	void dispatchFFT(GLuint spectrum);
 	void generateGaussianDist();
 	void calculateReverseIndices();
+	void calculateJonswapSpectrum();
 	void formatTextures();
 	void genInitDataAndUpload();
 

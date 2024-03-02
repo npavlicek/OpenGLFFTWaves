@@ -14,23 +14,32 @@ float jonswap(float omega) {
 	float fetch = 800.0;
 	float avgWindSpeed = 25.0;
 
-	float omega_p = 22 * (pow(gravity, 2) / (avgWindSpeed * fetch));
+	float omega_p = 22.0 * pow((pow(gravity, 2.0) / (avgWindSpeed * fetch)), 1.0/3.0);
 
 	float sigma = (omega > omega_p) ? 0.09 : 0.07;
 
-	float alpha = pow(pow(avgWindSpeed, 2) / (fetch * gravity), 0.22) * 0.076;
+	float alpha = pow(pow(avgWindSpeed, 2.0) / (fetch * gravity), 0.22) * 0.076;
 
-	//float r = -pow(omega - omega_p, 2)/(2 * pow(sigma, 2) * pow(omega_p, 2));
-	//r = exp(r);
-	float r = 4;
+	float r = -pow(omega - omega_p, 2.0)/(2.0 * pow(sigma, 2.0) * pow(omega_p, 2.0));
+	r = exp(r);
 
-	float res = alpha * pow(gravity, 2) / pow(omega, 5);
-	res *= exp(-(5.0/4.0)*pow(omega_p/omega, 4));
+	float res = alpha * pow(gravity, 2.0) / pow(omega, 5.0);
+	res *= exp(-(5.0/4.0)*pow(omega_p/omega, 4.0));
 	res *= pow(gamma, r);
 
 	if (isnan(res)) res = 0.0;
 
-	return res;
+	return r;
+}
+
+float dispersion(float k_mag)
+{
+	return sqrt(9.81 * k_mag);
+}
+
+float dispersion_der(float k_mag)
+{
+	return sqrt(9.81) / 2.0 / sqrt(k_mag);
 }
 
 void main() {
@@ -41,30 +50,30 @@ void main() {
 	float n = id.x - size.x / 2.0;
 	float m = id.y - size.y / 2.0;
 
-	float delta = 2 * PI / patchSize;
+	float delta = 2.0 * PI / patchSize;
 
-	float x = n * delta;
-	float y = m * delta;
+	vec2 k = vec2(n * delta, m * delta);
+	vec2 k_neg = -k;
 
-	vec2 coords = vec2(x, y);
+	float k_mag = length(k);
+	if (k_mag < 0.00001) k_mag = 0.00001;
 
-	float k_mag = length(coords);
-
-	float depth = 50.0;
-	float omega = sqrt(9.81 * k_mag * tanh(k_mag * depth));
-
-	float dOmegaNum = 9.81 * (tanh(depth * k_mag) + (depth * k_mag * (1 / pow(cosh(depth * k_mag), 2))));
-
-	float dOmega = abs(dOmegaNum / (2.0 * omega));
-	float js = sqrt(2 * jonswap(omega) * dOmega * delta * delta / k_mag);
+	float omega = dispersion(k_mag);
+	float dOmega = dispersion_der(k_mag);
+	float js = sqrt(2.0 * jonswap(omega) * dOmega * delta * delta / k_mag / (2 * PI));
 
 	vec4 val = imageLoad(spectrum, ivec2(id.xy));
 
 	float newR = val.r * js;
 	float newG = val.g * js;
+	float newB = val.b * js;
+	float newA = val.a * -js;
 
 	if (isnan(newR)) newR = 0.0;
 	if (isnan(newG)) newG = 0.0;
+	if (isnan(newB)) newB = 0.0;
+	if (isnan(newA)) newA = 0.0;
 
-	imageStore(spectrum, ivec2(id.xy), vec4(newR, newG, 0, 1));
+	imageStore(spectrum, ivec2(id.xy), vec4(newR, newG, newB, newA));
+	//imageStore(spectrum, ivec2(id.xy), vec4(jonswap(omega), dOmega, 0, 1));
 }
