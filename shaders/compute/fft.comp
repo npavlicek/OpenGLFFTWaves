@@ -33,7 +33,7 @@ void horizontal(ivec2 id)
 		vec2 p = imageLoad(buffer0, ivec2(butterflyData.z, id.y)).xy;
 		vec2 q = imageLoad(buffer0, ivec2(butterflyData.w, id.y)).xy;
 
-		res = p + cmul(butterflyData.xy, q);
+		res = p + cmul(vec2(butterflyData.x, -butterflyData.y), q);
 
 		imageStore(buffer1, id, vec4(res.xy, 0, 1));
 	}
@@ -42,7 +42,7 @@ void horizontal(ivec2 id)
 		vec2 p = imageLoad(buffer1, ivec2(butterflyData.z, id.y)).xy;
 		vec2 q = imageLoad(buffer1, ivec2(butterflyData.w, id.y)).xy;
 
-		res = p + cmul(butterflyData.xy, q);
+		res = p + cmul(vec2(butterflyData.x, -butterflyData.y), q);
 
 		imageStore(buffer0, id, vec4(res.xy, 0, 1));
 	}
@@ -58,7 +58,7 @@ void vertical(ivec2 id)
 		vec2 p = imageLoad(buffer0, ivec2(id.x, butterflyData.z)).xy;
 		vec2 q = imageLoad(buffer0, ivec2(id.x, butterflyData.w)).xy;
 
-		res = p + cmul(butterflyData.xy, q);
+		res = p + cmul(vec2(butterflyData.x, -butterflyData.y), q);
 
 		imageStore(buffer1, id, vec4(res.xy, 0, 1));
 	}
@@ -67,7 +67,7 @@ void vertical(ivec2 id)
 		vec2 p = imageLoad(buffer1, ivec2(id.x, butterflyData.z)).xy;
 		vec2 q = imageLoad(buffer1, ivec2(id.x, butterflyData.w)).xy;
 
-		res = p + cmul(butterflyData.xy, q);
+		res = p + cmul(vec2(butterflyData.x, -butterflyData.y), q);
 
 		imageStore(buffer0, id, vec4(res.xy, 0, 1));
 	}
@@ -82,7 +82,7 @@ void invertAndPermute(ivec2 id)
 	float perm = perms[index];
 
 	vec2 val = imageLoad(buffer0, id).rg;
-	val = (val / float(size * size)) * perm;
+	val = (val / float(1 * 1)) * perm;
 	imageStore(buffer0, id, vec4(val, 0, 1));
 }
 

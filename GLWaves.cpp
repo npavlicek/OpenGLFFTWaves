@@ -90,12 +90,12 @@ void GLWaves::initWindowAndContext()
 void GLWaves::loop()
 {
 	Spectrum spec{};
-	spec.init(256, 800);
+	spec.init(256, 250);
 
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(64.f, 20);
+	Plane waterPlane(20.f, 20);
 	waterPlane.init();
 
 	// clang-format off

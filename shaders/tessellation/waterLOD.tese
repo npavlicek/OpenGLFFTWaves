@@ -39,16 +39,10 @@ void main()
 	vec2 i_tc2 = (tc3 - tc2) * tc_x + tc2;
 	texCoord = (i_tc2 - i_tc1) * tc_y + i_tc1;
 
-	vec3 fp1 = inFragPos[0];
-	vec3 fp2 = inFragPos[1];
-	vec3 fp3 = inFragPos[2];
-	vec3 fp4 = inFragPos[3];
+	fragPos = vec3(model * vec4(newPos, 1));
 
-	vec3 i_fp1 = (fp2 - fp1) * tc_y + fp1;
-	vec3 i_fp2 = (fp3 - fp4) * tc_y + fp4;
-	fragPos = (i_fp2 - i_fp1) * tc_x + i_fp1;
-
-	vec4 displacement = texture(DisplacementsTex, texCoord * texCoordScale);
+	vec4 displacement = inverse(model) * texture(DisplacementsTex, fragPos.xz / 250);
+	displacement.y *= 5;
 
 	gl_Position = projection * view * model * vec4(newPos + displacement.xyz, 1);
 }

@@ -83,7 +83,7 @@ void Spectrum::genInitDataAndUpload()
 	glUseProgram(butterflyShader);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, reverseIndexBuffer);
 	glBindImageTexture(0, butterflyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-	glDispatchCompute(log2size, size / 16, 1);
+	glDispatchCompute(log2size, size / 16 / 2, 1);
 
 	// spectrum shader
 	glUseProgram(jonswapShader);
@@ -113,7 +113,7 @@ void Spectrum::formatTextures()
 	}
 
 	glBindTexture(GL_TEXTURE_2D, textures[Displacements]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glBindTexture(GL_TEXTURE_2D, butterflyTexture);
@@ -144,6 +144,7 @@ void Spectrum::combineTextures(float scale)
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glGenerateTextureMipmap(textures[Derivates]);
+	glGenerateTextureMipmap(textures[Displacements]);
 }
 
 void Spectrum::updateSpectrumTexture()
@@ -227,10 +228,10 @@ void Spectrum::cleanup()
 	delete[] initialSpectrum;
 }
 
-float jonswap(float omega)
+double jonswap(float omega)
 {
-	float fetch = 800.f;
-	float windSpeed = 80.f;
+	float fetch = 100000.f;
+	float windSpeed = 0.5f;
 	float gravity = 9.81f;
 
 	float gamma = 3.3;
@@ -239,21 +240,21 @@ float jonswap(float omega)
 	float sigma = omega <= omega_peak ? 0.07f : 0.09f;
 	float r = exp(-pow(omega - omega_peak, 2.f) / (2.f * pow(sigma, 2.f) * pow(omega_peak, 2.f)));
 
-	float res = alpha * pow(gravity, 2.f) / pow(sigma, 5.f);
+	float res = alpha * pow(gravity, 2.f) / pow(omega, 5.f);
 	res *= pow(gamma, r);
 	res *= exp(-(5.0 / 4.0) * pow(omega_peak / omega, 4));
 
 	return res;
 }
 
-float dispersion(float k_mag)
+double dispersion(float k_mag)
 {
 	return sqrt(9.81f * k_mag);
 }
 
-float dispersiond(float k_mag)
+double dispersiond(float k_mag)
 {
-	return sqrt(9.81f) / (2.f * sqrt(k_mag));
+	return sqrt(9.81f) / (2.f * sqrt(k_mag * 9.81f));
 }
 
 #define PI 3.1415
@@ -267,13 +268,13 @@ void Spectrum::calculateJonswapSpectrum()
 			float n = x - size / 2.0;
 			float m = y - size / 2.0;
 
-			float delta = 2.f * PI / (1.f * patchSize);
+			float delta = 2.f * PI / patchSize;
 
 			glm::vec2 k{n * delta, m * delta};
 			float k_mag = glm::length(k);
 
 			float omega = dispersion(k_mag);
-			float sw = jonswap(omega) * dispersiond(k_mag) / k_mag / 2 / PI;
+			float sw = jonswap(omega) * dispersiond(k_mag) / k_mag;
 
 			float abar = sqrt(2.0 * sw * delta * delta);
 

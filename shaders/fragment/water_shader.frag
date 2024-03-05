@@ -13,7 +13,8 @@ layout(location = 4) uniform vec3 lightPos;
 layout(location = 5) uniform float normalStrength;
 
 void main() {
-	vec4 derivative = texture(DerivativesTex, texCoord);
+	vec4 derivative = texture(DerivativesTex, fragPos.xz / 250);
+	derivative *= 5;
 	vec3 norm = normalize(vec3(normalStrength * derivative.x / (1 + derivative.z), 1, normalStrength * derivative.y / (1 + derivative.w)));
 
 	// Frag Space
@@ -36,5 +37,5 @@ void main() {
 
 	color = vec4(vec3(0.0, 0.15, 0.3) + diffuse + ambient + spec, 1);
 	//color = vec4(15 * norm.x, norm.y * 0.4, 15 * norm.z, 1);
-	//color = vec4(texCoord, 0, 1);
+	//color = vec4(derivative.xyz * 100, 1);
 }
