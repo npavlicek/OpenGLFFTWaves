@@ -8,7 +8,7 @@ Plane::Plane(float size, int sqrtInstances)
 	this->size = size;
 	this->sqrtInstances = sqrtInstances;
 	this->instances = sqrtInstances * sqrtInstances;
-	this->startLOD = 20;
+	this->startLOD = 40;
 	this->numVertices = startLOD * startLOD * 4;
 }
 

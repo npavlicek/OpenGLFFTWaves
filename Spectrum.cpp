@@ -228,7 +228,32 @@ void Spectrum::cleanup()
 	delete[] initialSpectrum;
 }
 
-double jonswap(float omega)
+float donelanBanner(float omega, float omega_peak, float theta)
+{
+	float betaS = 0.f;
+
+	float omegaRatio = omega / omega_peak;
+	if (omegaRatio > 0.56 && omegaRatio < 0.95)
+	{
+		betaS = 2.61 * pow(omegaRatio, 1.3);
+	}
+	else if (omegaRatio >= .95 && omegaRatio < 1.6)
+	{
+		betaS = 2.28 * pow(omegaRatio, -1.3);
+	}
+	else
+	{
+		float e = -0.4 + 0.8393 * exp(-0.567 * log(pow(omegaRatio, 2)));
+		betaS = pow(10, e);
+	}
+
+	float D = pow(1 / cosh(betaS * theta), 2) * betaS;
+	D /= 2 * tanh(betaS * 3.1415f);
+
+	return D;
+}
+
+float jonswap(float omega, float theta)
 {
 	float fetch = 100000.f;
 	float windSpeed = 0.5f;
@@ -244,15 +269,15 @@ double jonswap(float omega)
 	res *= pow(gamma, r);
 	res *= exp(-(5.0 / 4.0) * pow(omega_peak / omega, 4));
 
-	return res;
+	return res * donelanBanner(omega, omega_peak, theta);
 }
 
-double dispersion(float k_mag)
+float dispersion(float k_mag)
 {
 	return sqrt(9.81f * k_mag);
 }
 
-double dispersiond(float k_mag)
+float dispersiond(float k_mag)
 {
 	return sqrt(9.81f) / (2.f * sqrt(k_mag * 9.81f));
 }
@@ -274,7 +299,7 @@ void Spectrum::calculateJonswapSpectrum()
 			float k_mag = glm::length(k);
 
 			float omega = dispersion(k_mag);
-			float sw = jonswap(omega) * dispersiond(k_mag) / k_mag;
+			float sw = jonswap(omega, atan2(k.y, k.x)) * dispersiond(k_mag) / k_mag;
 
 			float abar = sqrt(2.0 * sw * delta * delta);
 

@@ -9,7 +9,8 @@ struct GLFWwindow;
 
 struct input
 {
-	bool w, a, s, d, q, c;
+	bool w, a, s, d, q, c, r;
+	bool shift;
 	bool captureCursor = true;
 };
 

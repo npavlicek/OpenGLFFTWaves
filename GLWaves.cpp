@@ -40,7 +40,8 @@ void GLWaves::init()
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugCallback, nullptr);
 
-	// glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CW);
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -90,12 +91,12 @@ void GLWaves::initWindowAndContext()
 void GLWaves::loop()
 {
 	Spectrum spec{};
-	spec.init(256, 250);
+	spec.init(1024, 250);
 
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(20.f, 20);
+	Plane waterPlane(1000.f, 8);
 	waterPlane.init();
 
 	// clang-format off
@@ -116,15 +117,19 @@ void GLWaves::loop()
 
 	float scale = 1.f;
 	float specScale = 1.f;
-	float normalStrength = 12.f;
+	float normalStrength = 1.5f;
 	bool simulate = true;
 	int selection = 0;
 
 	int inputFormat = 0;
-	int inputTexSize = 0;
+	int inputTexSize = 2;
 	int inputPatchSize = 250;
 
 	float texCoordScale = 1.f;
+
+	bool renderWireframe = false;
+
+	float camSpeed = 10.f;
 
 	GLenum format = GL_LINEAR;
 	int newSize = 512;
@@ -151,9 +156,14 @@ void GLWaves::loop()
 		auto delta = elapsed.count();
 		startTime = endTime;
 
+		if (i.shift)
+			camSpeed = 50.f;
+		else
+			camSpeed = 10.f;
+
 		if (i.captureCursor)
 		{
-			view = computeViewMatrix(window, delta, 1.f, 10.f);
+			view = computeViewMatrix(window, delta, 1.f, camSpeed);
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
@@ -174,6 +184,8 @@ void GLWaves::loop()
 		ImGui::Begin("Settings", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 
 		ImGui::Text("Press E to release the mouse cursor");
+
+		ImGui::Text("Cam Pos: %f %f %f", camPos.x, camPos.y, camPos.z);
 
 		if (ImGui::CollapsingHeader("Spectrum Textures"))
 		{
@@ -250,6 +262,7 @@ void GLWaves::loop()
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(waterModel));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
 		glUniform3f(3, camPos.x, camPos.y, camPos.z);
+		// glUniform3f(3, 0.f, 0.f, 0.f);
 		glUniform3f(4, 20.f, 5.f, 2.f);
 		glUniform1f(5, normalStrength);
 		glUniform1f(6, texCoordScale);
@@ -259,6 +272,14 @@ void GLWaves::loop()
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, derivatesTex);
+
+		if (i.r)
+			renderWireframe = !renderWireframe;
+
+		if (renderWireframe)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		waterPlane.draw();
 		// end water plane
@@ -370,6 +391,16 @@ void GLWaves::keyCallback(GLFWwindow *window, int key, int scancode, int action,
 		i.c = true;
 	else if (key == GLFW_KEY_C && action == GLFW_RELEASE)
 		i.c = false;
+
+	if (key == GLFW_KEY_R && action == GLFW_PRESS)
+		i.r = true;
+	else if (key == GLFW_KEY_R && action == GLFW_RELEASE)
+		i.r = false;
+
+	if (mods == GLFW_MOD_SHIFT)
+		i.shift = true;
+	else
+		i.shift = false;
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)
 	{

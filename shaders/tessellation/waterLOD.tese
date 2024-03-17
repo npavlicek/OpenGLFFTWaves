@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(quads, fractional_odd_spacing, ccw) in;
+layout(quads, equal_spacing, ccw) in;
 
 layout(location = 0) in vec2 inTexCoord[];
 layout(location = 1) in vec3 inFragPos[];
