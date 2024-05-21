@@ -8,7 +8,7 @@
 class Plane
 {
 public:
-	Plane(float size, int sqrtInstances);
+	Plane(float size, int sqrtInstances, int startingLOD);
 	void init();
 	void regenGeometry(float size, int sqrtInstances);
 	void draw();

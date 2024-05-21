@@ -3,12 +3,12 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-Plane::Plane(float size, int sqrtInstances)
+Plane::Plane(float size, int sqrtInstances, int startingLOD)
 {
 	this->size = size;
 	this->sqrtInstances = sqrtInstances;
 	this->instances = sqrtInstances * sqrtInstances;
-	this->startLOD = 40;
+	this->startLOD = startingLOD;
 	this->numVertices = startLOD * startLOD * 4;
 }
 

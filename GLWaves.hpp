@@ -25,6 +25,40 @@ private:
 	GLFWwindow *window;
 	int windowWidth, windowHeight;
 
+	struct
+	{
+		struct
+		{
+			float scale = 1.f;
+			float specScale = 1.f;
+			float normalStrength = 1.5f;
+			bool renderWater = true;
+			bool simulate = true;
+			bool cubemap = true;
+			int selection = 0;
+			int inputFormat = 0;
+			int inputTexSize = 2;
+			int inputPatchSize = 250;
+			float texCoordScale = 1.f;
+			bool renderWireframe = false;
+			float camSpeed = 10.f;
+			GLenum format = GL_LINEAR;
+			int newSize = 512;
+		} wave;
+		struct plane_settings
+		{
+			int numX = 256, numY = 256;
+			float interval = 0.09f;
+		} ps;
+		struct
+		{
+			int minTessLevel = 1;
+			int maxTessLevel = 16;
+			float minDistance = 0;
+			float maxDistance = 200;
+		} tess;
+	} settings;
+
 	double yaw = 3.14, pitch = -3.14 / 4;
 	glm::vec3 camPos{0.f, 4.f, 4.f};
 

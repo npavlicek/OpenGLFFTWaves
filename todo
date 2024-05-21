@@ -1,5 +1,6 @@
-- dynamic lod (in progress)
-- jonswap spectrum
-- cubemap / environment lighting
+- adjust LOD settings
+- jonswap spectrum on GPU
+- wave cascading
+- environment lighting
 - pbr lighting / atlas lighting
 - clouds??

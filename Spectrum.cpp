@@ -309,6 +309,28 @@ void Spectrum::calculateJonswapSpectrum()
 	}
 }
 
+int reverseBitsR(int num, int depth) {
+	if (depth == 0) return 0;
+	int res = 0;
+	res |= reverseBitsR(num / 2, depth-1);
+	res |= ((num % 2) << (depth - 1));
+	return res;	
+}
+
+void Spectrum::calculateReverseIndices()
+{
+	reverseIndices.resize(size, 0);
+	for (int i = 0; i < size; i++)
+	{
+		if (reverseIndices[i]) continue;
+
+		int reversed = reverseBitsR(i, ceil(log2(size)));
+		reverseIndices[i] = reversed;
+		reverseIndices[reversed] = i;
+	}
+}
+
+/** delete later idk
 void Spectrum::calculateReverseIndices()
 {
 	int numBits = log2(size);
@@ -324,7 +346,7 @@ void Spectrum::calculateReverseIndices()
 		}
 		reverseIndices.push_back(reversed);
 	}
-}
+}*/
 
 void Spectrum::generateGaussianDist()
 {

@@ -17,10 +17,13 @@
 #include <imgui_impl_opengl3.h>
 
 #include "Shader.hpp"
+#include "Skybox.hpp"
 #include "Spectrum.hpp"
 #include "plane.hpp"
 
 input i;
+
+Skybox sb;
 
 void GLWaves::init()
 {
@@ -36,6 +39,8 @@ void GLWaves::init()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init();
 
+	sb.init();
+
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugCallback, nullptr);
@@ -43,6 +48,8 @@ void GLWaves::init()
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
 void GLWaves::initWindowAndContext()
@@ -60,7 +67,7 @@ void GLWaves::initWindowAndContext()
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 	glfwWindowHint(GLFW_SAMPLES, 4);
 
-	window = glfwCreateWindow(windowWidth, windowHeight, "Test", nullptr, nullptr);
+	window = glfwCreateWindow(windowWidth, windowHeight, "OpenGL FFT Waves", nullptr, nullptr);
 	if (window == NULL)
 	{
 		glfwTerminate();
@@ -96,7 +103,7 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(1000.f, 8);
+	Plane waterPlane(256.f, 3, 1);
 	waterPlane.init();
 
 	// clang-format off
@@ -115,31 +122,6 @@ void GLWaves::loop()
 	auto constStartTime = std::chrono::system_clock::now();
 	auto startTime = std::chrono::system_clock::now();
 
-	float scale = 1.f;
-	float specScale = 1.f;
-	float normalStrength = 1.5f;
-	bool simulate = true;
-	int selection = 0;
-
-	int inputFormat = 0;
-	int inputTexSize = 2;
-	int inputPatchSize = 250;
-
-	float texCoordScale = 1.f;
-
-	bool renderWireframe = false;
-
-	float camSpeed = 10.f;
-
-	GLenum format = GL_LINEAR;
-	int newSize = 512;
-
-	struct plane_settings
-	{
-		int numX = 256, numY = 256;
-		float interval = 0.09f;
-	} ps;
-
 	glm::mat4 view;
 	glm::mat4 waterModel = glm::identity<glm::mat4>();
 	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 1000.f);
@@ -157,21 +139,21 @@ void GLWaves::loop()
 		startTime = endTime;
 
 		if (i.shift)
-			camSpeed = 50.f;
+			settings.wave.camSpeed = 50.f;
 		else
-			camSpeed = 10.f;
+			settings.wave.camSpeed = 10.f;
 
 		if (i.captureCursor)
 		{
-			view = computeViewMatrix(window, delta, 1.f, camSpeed);
+			view = computeViewMatrix(window, delta, 1.f, settings.wave.camSpeed);
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
-		if (simulate)
+		if (settings.wave.simulate)
 		{
 			spec.updateSpectrumTexture();
 			spec.fft();
-			spec.combineTextures(scale);
+			spec.combineTextures(settings.wave.scale);
 		}
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -189,49 +171,49 @@ void GLWaves::loop()
 
 		if (ImGui::CollapsingHeader("Spectrum Textures"))
 		{
-			if (ImGui::Combo("Min/Mag Filter", &inputFormat, "GL_LINEAR\0GL_NEAREST\0"))
+			if (ImGui::Combo("Min/Mag Filter", &settings.wave.inputFormat, "GL_LINEAR\0GL_NEAREST\0"))
 			{
-				switch (inputFormat)
+				switch (settings.wave.inputFormat)
 				{
 				case 0:
-					format = GL_LINEAR;
+					settings.wave.format = GL_LINEAR;
 					break;
 				case 1:
-					format = GL_NEAREST;
+					settings.wave.format = GL_NEAREST;
 				}
 			}
 
-			if (ImGui::Combo("Size", &inputTexSize, "256x256\000512x512\0001024x1024\0"))
+			if (ImGui::Combo("Size", &settings.wave.inputTexSize, "256x256\000512x512\0001024x1024\0"))
 			{
-				switch (inputTexSize)
+				switch (settings.wave.inputTexSize)
 				{
 				case 0:
-					newSize = 256;
+					settings.wave.newSize = 256;
 					break;
 				case 1:
-					newSize = 512;
+					settings.wave.newSize = 512;
 					break;
 				case 2:
-					newSize = 1024;
+					settings.wave.newSize = 1024;
 				}
 			}
 
-			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &inputPatchSize);
+			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &settings.wave.inputPatchSize);
 
-			ImGui::SliderFloat("Spectrum Scale", &specScale, 1.f, 100.f);
+			ImGui::SliderFloat("Spectrum Scale", &settings.wave.specScale, 1.f, 100.f);
 
 			if (ImGui::Button("Regenerate Textures"))
 			{
-				spec.regen(newSize, inputPatchSize, specScale);
+				spec.regen(settings.wave.newSize, settings.wave.inputPatchSize, settings.wave.specScale);
 			}
 		}
 
 		if (ImGui::CollapsingHeader("Geometry"))
 		{
 			ImGui::Text("Size of one chunk");
-			ImGui::InputScalar("Width", ImGuiDataType_S32, &ps.numX);
-			ImGui::InputScalar("Height", ImGuiDataType_S32, &ps.numY);
-			ImGui::InputFloat("Interval", &ps.interval);
+			ImGui::InputScalar("Width", ImGuiDataType_S32, &settings.ps.numX);
+			ImGui::InputScalar("Height", ImGuiDataType_S32, &settings.ps.numY);
+			ImGui::InputFloat("Interval", &settings.ps.interval);
 
 			if (ImGui::Button("Regenerate Geometry"))
 			{
@@ -239,20 +221,33 @@ void GLWaves::loop()
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Tessellation"))
+		{
+			ImGui::SliderInt("Minimum Level", &settings.tess.minTessLevel, 1, 64);
+			ImGui::SliderInt("Maximum Level", &settings.tess.maxTessLevel, 1, 64);
+
+			ImGui::SliderFloat("Minimum Distance", &settings.tess.minDistance, 0, 1000);
+			ImGui::SliderFloat("Maximum Distance", &settings.tess.maxDistance, 0, 1000);
+		}
+
 		if (ImGui::CollapsingHeader("Misc"))
 		{
-			ImGui::SliderFloat("Scale", &scale, 0.f, 10.f);
-			ImGui::SliderFloat("Normal Strength", &normalStrength, 0.f, 50.f);
-			ImGui::SliderFloat("Tex Coord Scale", &texCoordScale, 1.f, 50.f);
-			ImGui::Checkbox("Simulate", &simulate);
+			ImGui::SliderFloat("Scale", &settings.wave.scale, 0.f, 10.f);
+			ImGui::SliderFloat("Normal Strength", &settings.wave.normalStrength, 0.f, 50.f);
+			ImGui::SliderFloat("Tex Coord Scale", &settings.wave.texCoordScale, 1.f, 50.f);
+			ImGui::Checkbox("Simulate", &settings.wave.simulate);
+			ImGui::Checkbox("Cubemap", &settings.wave.cubemap);
+			ImGui::Checkbox("Water", &settings.wave.renderWater);
+			ImGui::Checkbox("Render Wireframe", &settings.wave.renderWireframe);
 		}
 		ImGui::End();
 
 		const char *selections = "DyDx\0DzDzx\0DyxDyz\0DxxDzz\0Buffer\0Displacements\0Derivatices\0Initial Spectrum\0";
 
 		ImGui::Begin("Debug Image", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-		ImGui::Combo("Select Image", &selection, selections);
-		ImGui::Image(reinterpret_cast<void *>(spec.getTexture((SpectrumTextures)selection)), ImVec2(512.f, 512.f));
+		ImGui::Combo("Select Image", &settings.wave.selection, selections);
+		ImGui::Image(reinterpret_cast<void *>(spec.getTexture((SpectrumTextures)settings.wave.selection)),
+								 ImVec2(512.f, 512.f));
 		ImGui::End();
 
 		ImGui::Render();
@@ -261,11 +256,16 @@ void GLWaves::loop()
 		glUseProgram(waterShaderProgram);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(waterModel));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
-		glUniform3f(3, camPos.x, camPos.y, camPos.z);
-		// glUniform3f(3, 0.f, 0.f, 0.f);
+		// glUniform3f(3, camPos.x, camPos.y, camPos.z);
+		glUniform3f(3, 0.f, 0.f, 0.f);
 		glUniform3f(4, 20.f, 5.f, 2.f);
-		glUniform1f(5, normalStrength);
-		glUniform1f(6, texCoordScale);
+		glUniform1f(5, settings.wave.normalStrength);
+		glUniform1f(6, settings.wave.texCoordScale);
+
+		glUniform1f(7, settings.tess.minDistance);
+		glUniform1f(8, settings.tess.maxDistance);
+		glUniform1i(9, settings.tess.minTessLevel);
+		glUniform1i(10, settings.tess.maxTessLevel);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, displacementsTex);
@@ -273,22 +273,26 @@ void GLWaves::loop()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, derivatesTex);
 
-		if (i.r)
-			renderWireframe = !renderWireframe;
-
-		if (renderWireframe)
+		if (settings.wave.renderWireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-		waterPlane.draw();
+		if (settings.wave.renderWater)
+			waterPlane.draw();
 		// end water plane
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		if (settings.wave.cubemap)
+			sb.render(view, projection);
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window);
 	}
 
+	sb.cleanup();
 	spec.cleanup();
 	waterPlane.destroy();
 }
