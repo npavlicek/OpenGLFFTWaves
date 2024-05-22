@@ -99,11 +99,13 @@ void Plane::genGeometry()
 	delete[] vertices;
 }
 
-void Plane::regenGeometry(float size, int sqrtInstances)
+void Plane::regenGeometry(float size, int sqrtInstances, int lod)
 {
 	this->size = size;
 	this->sqrtInstances = sqrtInstances;
 	this->instances = sqrtInstances * sqrtInstances;
+	this->startLOD = lod;
+	this->numVertices = startLOD * startLOD * 4;
 
 	genGeometry();
 }

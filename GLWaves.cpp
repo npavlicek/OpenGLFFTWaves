@@ -103,7 +103,7 @@ void GLWaves::loop()
 	GLuint displacementsTex = spec.getTexture(Displacements);
 	GLuint derivatesTex = spec.getTexture(Derivates);
 
-	Plane waterPlane(256.f, 3, 1);
+	Plane waterPlane(settings.ps.size, settings.ps.sqrtOfInstances, settings.ps.lod);
 	waterPlane.init();
 
 	// clang-format off
@@ -211,13 +211,13 @@ void GLWaves::loop()
 		if (ImGui::CollapsingHeader("Geometry"))
 		{
 			ImGui::Text("Size of one chunk");
-			ImGui::InputScalar("Width", ImGuiDataType_S32, &settings.ps.numX);
-			ImGui::InputScalar("Height", ImGuiDataType_S32, &settings.ps.numY);
-			ImGui::InputFloat("Interval", &settings.ps.interval);
+			ImGui::InputFloat("Length Chunk", &settings.ps.size);
+			ImGui::InputInt("Sqrt # of Chunks", &settings.ps.sqrtOfInstances);
+			ImGui::InputInt("LOD", &settings.ps.lod);
 
 			if (ImGui::Button("Regenerate Geometry"))
 			{
-				// waterPlane.regenGeometry(ps.numX, ps.numY, ps.interval);
+				waterPlane.regenGeometry(settings.ps.size, settings.ps.sqrtOfInstances, settings.ps.lod);
 			}
 		}
 
@@ -228,6 +228,8 @@ void GLWaves::loop()
 
 			ImGui::SliderFloat("Minimum Distance", &settings.tess.minDistance, 0, 1000);
 			ImGui::SliderFloat("Maximum Distance", &settings.tess.maxDistance, 0, 1000);
+
+			ImGui::Checkbox("Tess Follow Cam", &settings.tess.tessFollowCam);
 		}
 
 		if (ImGui::CollapsingHeader("Misc"))
@@ -256,8 +258,10 @@ void GLWaves::loop()
 		glUseProgram(waterShaderProgram);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(waterModel));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
-		// glUniform3f(3, camPos.x, camPos.y, camPos.z);
-		glUniform3f(3, 0.f, 0.f, 0.f);
+		if (settings.tess.tessFollowCam)
+			glUniform3f(3, camPos.x, camPos.y, camPos.z);
+		else
+			glUniform3f(3, 0.f, 0.f, 0.f);
 		glUniform3f(4, 20.f, 5.f, 2.f);
 		glUniform1f(5, settings.wave.normalStrength);
 		glUniform1f(6, settings.wave.texCoordScale);

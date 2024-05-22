@@ -47,15 +47,17 @@ private:
 		} wave;
 		struct plane_settings
 		{
-			int numX = 256, numY = 256;
-			float interval = 0.09f;
+			float size = 1000.f;
+			int sqrtOfInstances = 3;
+			int lod = 45;
 		} ps;
 		struct
 		{
 			int minTessLevel = 1;
-			int maxTessLevel = 16;
-			float minDistance = 0;
-			float maxDistance = 200;
+			int maxTessLevel = 25;
+			float minDistance = 75.f;
+			float maxDistance = 250.f;
+			bool tessFollowCam = true;
 		} tess;
 	} settings;
 
