@@ -41,16 +41,31 @@ private:
 			int inputPatchSize = 250;
 			float texCoordScale = 1.f;
 			bool renderWireframe = false;
-			float camSpeed = 10.f;
-			GLenum format = GL_LINEAR;
 			int newSize = 512;
 		} wave;
+		struct
+		{
+
+		} cascade1;
+		struct
+		{
+
+		} cascade2;
+		struct
+		{
+
+		} cascade3;
 		struct plane_settings
 		{
 			float size = 1000.f;
 			int sqrtOfInstances = 3;
-			int lod = 45;
+			int lod = 55;
 		} ps;
+		struct
+		{
+			float speed = 50.f;
+			float sprintFactor = 7.f;
+		} cam;
 		struct
 		{
 			int minTessLevel = 1;

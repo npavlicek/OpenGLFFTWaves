@@ -13,6 +13,10 @@
 
 #include "Shader.hpp"
 
+std::vector<int> Spectrum::reverseIndices = std::vector<int>();
+bool Spectrum::initDataGenerated = false;
+Color *Spectrum::randomData = nullptr;
+
 void Spectrum::init(int size, int patchSize)
 {
 	this->size = size;
@@ -22,21 +26,20 @@ void Spectrum::init(int size, int patchSize)
 
 	start = std::chrono::system_clock::now();
 
-	initialSpectrum = new Color[size * size];
+	spectrum = new Color[size * size];
 
 	// Calculate the reverse indices and initial random data
-	calculateReverseIndices();
-	generateGaussianDist();
+	if (!initDataGenerated)
+	{
+		randomData = new Color[size * size];
+		calculateReverseIndices();
+		generateGaussianDist();
+		initDataGenerated = true;
+	}
 	calculateJonswapSpectrum();
 
 	// Load all the shaders
-	jonswapShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/jonswap_spec.spv")});
-	phillipsShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/phillips_spec.spv")});
-	conjugateShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/conjugate.spv")});
-	butterflyShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/butterfly.spv")});
-	timeSpectrumShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/time_spec.spv")});
-	fftShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/fft.spv")});
-	combineShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/combine_tex.spv")});
+	loadShaders();
 
 	// Generate all the necessary textures and buffers
 	textures = new GLuint[numTextures];
@@ -57,10 +60,13 @@ void Spectrum::regen(int size, int patchSize, float scale)
 	this->log2size = static_cast<int>(log2(size));
 	this->scale = scale;
 
-	delete[] initialSpectrum;
+	delete[] randomData;
+	delete[] spectrum;
+
 	reverseIndices.clear();
 
-	initialSpectrum = new Color[size * size];
+	randomData = new Color[size * size];
+	spectrum = new Color[size * size];
 
 	calculateReverseIndices();
 	generateGaussianDist();
@@ -71,9 +77,31 @@ void Spectrum::regen(int size, int patchSize, float scale)
 	genInitDataAndUpload();
 }
 
+void Spectrum::loadShaders()
+{
+	if (jonswapShader)
+	{
+		glDeleteProgram(jonswapShader);
+		glDeleteProgram(phillipsShader);
+		glDeleteProgram(conjugateShader);
+		glDeleteProgram(butterflyShader);
+		glDeleteProgram(timeSpectrumShader);
+		glDeleteProgram(fftShader);
+		glDeleteProgram(combineShader);
+	}
+
+	jonswapShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/jonswap_spec.spv")});
+	phillipsShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/phillips_spec.spv")});
+	conjugateShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/conjugate.spv")});
+	butterflyShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/butterfly.spv")});
+	timeSpectrumShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/time_spec.spv")});
+	fftShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/fft.spv")});
+	combineShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/combine_tex.spv")});
+}
+
 void Spectrum::genInitDataAndUpload()
 {
-	glTextureSubImage2D(textures[InitialSpectrum], 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, initialSpectrum);
+	glTextureSubImage2D(textures[InitialSpectrum], 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, spectrum);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndexBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, reverseIndices.size() * sizeof(int), reverseIndices.data(), GL_STREAM_DRAW);
@@ -225,7 +253,8 @@ void Spectrum::cleanup()
 
 	glDeleteBuffers(1, &reverseIndexBuffer);
 
-	delete[] initialSpectrum;
+	delete[] spectrum;
+	delete[] randomData;
 }
 
 float donelanBanner(float omega, float omega_peak, float theta)
@@ -303,18 +332,20 @@ void Spectrum::calculateJonswapSpectrum()
 
 			float abar = sqrt(2.0 * sw * delta * delta);
 
-			initialSpectrum[y * size + x].r *= abar;
-			initialSpectrum[y * size + x].g *= abar;
+			spectrum[y * size + x].r = randomData[y * size + x].r * abar;
+			spectrum[y * size + x].g = randomData[y * size + x].g * abar;
 		}
 	}
 }
 
-int reverseBitsR(int num, int depth) {
-	if (depth == 0) return 0;
+int Spectrum::reverseBitsR(int num, int depth)
+{
+	if (depth == 0)
+		return 0;
 	int res = 0;
-	res |= reverseBitsR(num / 2, depth-1);
+	res |= reverseBitsR(num / 2, depth - 1);
 	res |= ((num % 2) << (depth - 1));
-	return res;	
+	return res;
 }
 
 void Spectrum::calculateReverseIndices()
@@ -322,31 +353,14 @@ void Spectrum::calculateReverseIndices()
 	reverseIndices.resize(size, 0);
 	for (int i = 0; i < size; i++)
 	{
-		if (reverseIndices[i]) continue;
+		if (reverseIndices[i])
+			continue;
 
 		int reversed = reverseBitsR(i, ceil(log2(size)));
 		reverseIndices[i] = reversed;
 		reverseIndices[reversed] = i;
 	}
 }
-
-/** delete later idk
-void Spectrum::calculateReverseIndices()
-{
-	int numBits = log2(size);
-	for (int i = 0; i < size; i++)
-	{
-		int reversed = 0;
-		for (int j = 0; j < numBits; j++)
-		{
-			if (i & static_cast<int>(pow(2, j)))
-			{
-				reversed |= static_cast<int>(pow(2, numBits - j - 1));
-			}
-		}
-		reverseIndices.push_back(reversed);
-	}
-}*/
 
 void Spectrum::generateGaussianDist()
 {
@@ -358,9 +372,9 @@ void Spectrum::generateGaussianDist()
 
 	for (int i = 0; i < size * size; i++)
 	{
-		initialSpectrum[i].r = randVal();
-		initialSpectrum[i].g = randVal();
-		initialSpectrum[i].b = 0;
-		initialSpectrum[i].a = 0;
+		randomData[i].r = randVal();
+		randomData[i].g = randVal();
+		randomData[i].b = 0;
+		randomData[i].a = 0;
 	}
 }

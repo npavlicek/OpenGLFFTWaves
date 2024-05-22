@@ -9,11 +9,17 @@ It also uses cmake to build our application.
 """
 
 do_compile_shaders = False
+do_compile_program = False
 
-res = input("Compile shaders too? (y/n): ")
+res = input("Compile Shaders (s), Compile Program (p), or Compile All (a)?")
 
-if (res == 'y' or res == 'Y'):
+if res == "s" or res == "S":
 	do_compile_shaders = True
+elif res == "p" or res == "P":
+	do_compile_program = True
+else:
+	do_compile_shaders = True
+	do_compile_program = True
 
 shader_types = [
 	'compute',
@@ -61,14 +67,15 @@ if do_compile_shaders:
 	compile_shaders(shader_types[3], tcs_shaders)
 	compile_shaders(shader_types[4], tes_shaders)
 
-# Finally compile the app
-print('Compiling application...')
-output = subprocess.Popen('cmake --build build -j 8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-while output.poll() is None:
-	l = output.stdout.readline()
-	sys.stdout.write(l.decode())
-sys.stdout.write(output.stdout.read().decode())
+if do_compile_program:
+	# Finally compile the app
+	print('Compiling application...')
+	output = subprocess.Popen('cmake --build build -j 8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	while output.poll() is None:
+		l = output.stdout.readline()
+		sys.stdout.write(l.decode())
+	sys.stdout.write(output.stdout.read().decode())
 
-# Check for errors
-if (output.returncode != 0):
-	sys.stdout.write(output.stderr.read().decode())
+	# Check for errors
+	if (output.returncode != 0):
+		sys.stdout.write(output.stderr.read().decode())

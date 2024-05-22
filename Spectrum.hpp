@@ -34,6 +34,7 @@ public:
 	void fft();
 	void combineTextures(float scale);
 	void regen(int size, int patchSize, float scale);
+	void loadShaders();
 	GLuint getTexture(SpectrumTextures texType)
 	{
 		return textures[texType];
@@ -42,8 +43,11 @@ public:
 private:
 	int size, log2size, patchSize;
 	float scale;
-	std::vector<int> reverseIndices;
-	Color *initialSpectrum;
+	Color *spectrum;
+
+	static std::vector<int> reverseIndices;
+	static Color *randomData;
+	static bool initDataGenerated;
 
 	std::chrono::time_point<std::chrono::system_clock> start;
 
@@ -57,6 +61,7 @@ private:
 	void calculateJonswapSpectrum();
 	void formatTextures();
 	void genInitDataAndUpload();
+	int reverseBitsR(int num, int depth);
 
 	int numTextures = 8;
 	GLuint *textures;

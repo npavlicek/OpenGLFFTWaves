@@ -95,17 +95,8 @@ void GLWaves::initWindowAndContext()
 	std::cout << "Loaded OpenGL " << GLAD_VERSION_MAJOR(version) << "." << GLAD_VERSION_MINOR(version) << std::endl;
 }
 
-void GLWaves::loop()
+GLuint reloadShaders()
 {
-	Spectrum spec{};
-	spec.init(1024, 250);
-
-	GLuint displacementsTex = spec.getTexture(Displacements);
-	GLuint derivatesTex = spec.getTexture(Derivates);
-
-	Plane waterPlane(settings.ps.size, settings.ps.sqrtOfInstances, settings.ps.lod);
-	waterPlane.init();
-
 	// clang-format off
 	std::vector<GLuint> waterShaders = {
 		loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
@@ -115,7 +106,21 @@ void GLWaves::loop()
 	};
 	// clang-format on
 
-	GLuint waterShaderProgram = linkProgram(waterShaders);
+	return linkProgram(waterShaders);
+}
+
+void GLWaves::loop()
+{
+	Spectrum spec{};
+	spec.init(1024, 250);
+
+	GLuint displacementsTex = spec.getTexture(Displacements);
+	GLuint derivatesTex = spec.getTexture(Derivates);
+
+	GLuint waterShaderProgram = reloadShaders();
+
+	Plane waterPlane(settings.ps.size, settings.ps.sqrtOfInstances, settings.ps.lod);
+	waterPlane.init();
 
 	glfwSetCursorPos(window, 1280.f / 2, 720.f / 2);
 
@@ -124,7 +129,7 @@ void GLWaves::loop()
 
 	glm::mat4 view;
 	glm::mat4 waterModel = glm::identity<glm::mat4>();
-	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 1000.f);
+	glm::mat4 projection = glm::perspective(glm::radians(60.f), windowWidth * 1.f / windowHeight, 0.1f, 10000.f);
 
 	glUseProgram(waterShaderProgram);
 	glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
@@ -138,14 +143,15 @@ void GLWaves::loop()
 		auto delta = elapsed.count();
 		startTime = endTime;
 
-		if (i.shift)
-			settings.wave.camSpeed = 50.f;
-		else
-			settings.wave.camSpeed = 10.f;
-
 		if (i.captureCursor)
 		{
-			view = computeViewMatrix(window, delta, 1.f, settings.wave.camSpeed);
+			float speed = 0.f;
+			if (!i.shift)
+				speed = settings.cam.speed;
+			else
+				speed = settings.cam.speed * settings.cam.sprintFactor;
+
+			view = computeViewMatrix(window, delta, 1.f, speed);
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
@@ -171,18 +177,6 @@ void GLWaves::loop()
 
 		if (ImGui::CollapsingHeader("Spectrum Textures"))
 		{
-			if (ImGui::Combo("Min/Mag Filter", &settings.wave.inputFormat, "GL_LINEAR\0GL_NEAREST\0"))
-			{
-				switch (settings.wave.inputFormat)
-				{
-				case 0:
-					settings.wave.format = GL_LINEAR;
-					break;
-				case 1:
-					settings.wave.format = GL_NEAREST;
-				}
-			}
-
 			if (ImGui::Combo("Size", &settings.wave.inputTexSize, "256x256\000512x512\0001024x1024\0"))
 			{
 				switch (settings.wave.inputTexSize)
@@ -210,8 +204,7 @@ void GLWaves::loop()
 
 		if (ImGui::CollapsingHeader("Geometry"))
 		{
-			ImGui::Text("Size of one chunk");
-			ImGui::InputFloat("Length Chunk", &settings.ps.size);
+			ImGui::InputFloat("Chunk Length", &settings.ps.size);
 			ImGui::InputInt("Sqrt # of Chunks", &settings.ps.sqrtOfInstances);
 			ImGui::InputInt("LOD", &settings.ps.lod);
 
@@ -232,16 +225,34 @@ void GLWaves::loop()
 			ImGui::Checkbox("Tess Follow Cam", &settings.tess.tessFollowCam);
 		}
 
+		if (ImGui::CollapsingHeader("Camera")) {
+			ImGui::SliderFloat("Speed", &settings.cam.speed, 50.f, 500.f);
+			ImGui::SliderFloat("Sprint Factor", &settings.cam.sprintFactor, 1.f, 50.f);
+		}
+
 		if (ImGui::CollapsingHeader("Misc"))
 		{
 			ImGui::SliderFloat("Scale", &settings.wave.scale, 0.f, 10.f);
 			ImGui::SliderFloat("Normal Strength", &settings.wave.normalStrength, 0.f, 50.f);
 			ImGui::SliderFloat("Tex Coord Scale", &settings.wave.texCoordScale, 1.f, 50.f);
 			ImGui::Checkbox("Simulate", &settings.wave.simulate);
-			ImGui::Checkbox("Cubemap", &settings.wave.cubemap);
-			ImGui::Checkbox("Water", &settings.wave.renderWater);
+			ImGui::Checkbox("Render Cubemap", &settings.wave.cubemap);
+			ImGui::Checkbox("Render Water", &settings.wave.renderWater);
 			ImGui::Checkbox("Render Wireframe", &settings.wave.renderWireframe);
+
+			if (ImGui::Button("Reload Shaders"))
+			{
+				std::cout << "Reloading shaders..." << std::endl;
+				if (waterShaderProgram) {
+					glDeleteProgram(waterShaderProgram);
+				}
+				waterShaderProgram = reloadShaders();
+				glUseProgram(waterShaderProgram);
+				glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
+				spec.loadShaders();
+			}
 		}
+
 		ImGui::End();
 
 		const char *selections = "DyDx\0DzDzx\0DyxDyz\0DxxDzz\0Buffer\0Displacements\0Derivatices\0Initial Spectrum\0";
@@ -310,7 +321,7 @@ void GLWaves::destroy()
 	glfwTerminate();
 }
 
-glm::mat4 GLWaves::computeViewMatrix(GLFWwindow *win, float delta, float mouseSpeed, float camSpeed)
+glm::mat4 GLWaves::computeViewMatrix(GLFWwindow *win, float delta, float mouseSpeed, float speed)
 {
 	double x, y;
 	glfwGetCursorPos(win, &x, &y);
@@ -330,17 +341,17 @@ glm::mat4 GLWaves::computeViewMatrix(GLFWwindow *win, float delta, float mouseSp
 	glm::vec3 up = glm::cross(right, dir);
 
 	if (i.w)
-		camPos += dir * camSpeed * delta;
+		camPos += dir * speed * delta;
 	if (i.s)
-		camPos -= dir * camSpeed * delta;
+		camPos -= dir * speed * delta;
 	if (i.a)
-		camPos -= glm::cross(dir, up) * camSpeed * delta;
+		camPos -= glm::cross(dir, up) * speed * delta;
 	if (i.d)
-		camPos += glm::cross(dir, up) * camSpeed * delta;
+		camPos += glm::cross(dir, up) * speed * delta;
 	if (i.q)
-		camPos += up * camSpeed * delta;
+		camPos += up * speed * delta;
 	if (i.c)
-		camPos += -up * camSpeed * delta;
+		camPos += -up * speed * delta;
 
 	return glm::lookAt(camPos, camPos + dir, up);
 }
