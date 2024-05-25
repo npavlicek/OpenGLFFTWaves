@@ -19,6 +19,7 @@
 #include "Shader.hpp"
 #include "Skybox.hpp"
 #include "Spectrum.hpp"
+#include "WaveSettings.hpp"
 #include "plane.hpp"
 
 input i;
@@ -111,15 +112,27 @@ GLuint reloadShaders()
 
 void GLWaves::loop()
 {
-	Spectrum spec{};
-	spec.init(1024, 250);
+	WaveSettings ws;
+	ws.load();
 
-	GLuint displacementsTex = spec.getTexture(Displacements);
-	GLuint derivatesTex = spec.getTexture(Derivates);
+	Spectrum cascade1{};
+	Spectrum cascade2{};
+	Spectrum cascade3{};
+	cascade1.init(ws.casc.resolution,
+	              ws.casc.patch_size,
+	              ws.casc.horizontal_displacement_scale,
+	              ws.casc.depth,
+	              ws.casc.fetch,
+	              ws.casc.wind_speed,
+	              ws.casc.cutoffLow,
+	              ws.casc.cutoffHigh);
+
+	GLuint displacementsTex = cascade1.getTexture(Displacements);
+	GLuint derivatesTex = cascade1.getTexture(Derivates);
 
 	GLuint waterShaderProgram = reloadShaders();
 
-	Plane waterPlane(settings.ps.size, settings.ps.sqrtOfInstances, settings.ps.lod);
+	Plane waterPlane(ws.plane.size, ws.plane.sqrt_num_instances, ws.plane.lod);
 	waterPlane.init();
 
 	glfwSetCursorPos(window, 1280.f / 2, 720.f / 2);
@@ -147,19 +160,19 @@ void GLWaves::loop()
 		{
 			float speed = 0.f;
 			if (!i.shift)
-				speed = settings.cam.speed;
+				speed = ws.cam.speed;
 			else
-				speed = settings.cam.speed * settings.cam.sprintFactor;
+				speed = ws.cam.speed * ws.cam.sprint_factor;
 
 			view = computeViewMatrix(window, delta, 1.f, speed);
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		}
 
-		if (settings.wave.simulate)
+		if (ws.debug.simulate_ocean)
 		{
-			spec.updateSpectrumTexture();
-			spec.fft();
-			spec.combineTextures(settings.wave.scale);
+			cascade1.updateSpectrumTexture();
+			cascade1.fft();
+			cascade1.combineTextures(ws.casc.horizontal_displacement_scale);
 		}
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -177,79 +190,92 @@ void GLWaves::loop()
 
 		if (ImGui::CollapsingHeader("Spectrum Textures"))
 		{
-			if (ImGui::Combo("Size", &settings.wave.inputTexSize, "256x256\000512x512\0001024x1024\0"))
+			if (ImGui::Combo("Size", &ws.casc.select_tex_res, "256x256\000512x512\0001024x1024\0"))
 			{
-				switch (settings.wave.inputTexSize)
+				switch (ws.casc.select_tex_res)
 				{
 				case 0:
-					settings.wave.newSize = 256;
+					ws.casc.resolution = 256;
 					break;
 				case 1:
-					settings.wave.newSize = 512;
+					ws.casc.resolution = 512;
 					break;
 				case 2:
-					settings.wave.newSize = 1024;
+					ws.casc.resolution = 1024;
 				}
 			}
 
-			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &settings.wave.inputPatchSize);
-
-			ImGui::SliderFloat("Spectrum Scale", &settings.wave.specScale, 1.f, 100.f);
+			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &ws.casc.patch_size);
+			ImGui::SliderFloat("Depth", &ws.casc.depth, 1.f, 100.f);
+			ImGui::SliderFloat("Fetch", &ws.casc.fetch, 1.f, 100.f);
+			ImGui::SliderFloat("Wind Speed", &ws.casc.wind_speed, 1.f, 100.f);
+			ImGui::SliderFloat("Cutoff Low", &ws.casc.cutoffLow, 1.f, 100.f);
+			ImGui::SliderFloat("Cutoff High", &ws.casc.cutoffHigh, 1.f, 100.f);
 
 			if (ImGui::Button("Regenerate Textures"))
 			{
-				spec.regen(settings.wave.newSize, settings.wave.inputPatchSize, settings.wave.specScale);
+				cascade1.regen(ws.casc.resolution,
+				               ws.casc.patch_size,
+				               ws.casc.horizontal_displacement_scale,
+				               ws.casc.depth,
+				               ws.casc.fetch,
+				               ws.casc.wind_speed,
+				               ws.casc.cutoffLow,
+				               ws.casc.cutoffHigh);
 			}
 		}
 
 		if (ImGui::CollapsingHeader("Geometry"))
 		{
-			ImGui::InputFloat("Chunk Length", &settings.ps.size);
-			ImGui::InputInt("Sqrt # of Chunks", &settings.ps.sqrtOfInstances);
-			ImGui::InputInt("LOD", &settings.ps.lod);
+			ImGui::InputFloat("Chunk Length", &ws.plane.size);
+			ImGui::InputInt("Sqrt # of Chunks", &ws.plane.sqrt_num_instances);
+			ImGui::InputInt("LOD", &ws.plane.lod);
 
 			if (ImGui::Button("Regenerate Geometry"))
 			{
-				waterPlane.regenGeometry(settings.ps.size, settings.ps.sqrtOfInstances, settings.ps.lod);
+				waterPlane.regenGeometry(ws.plane.size, ws.plane.sqrt_num_instances, ws.plane.lod);
 			}
 		}
 
 		if (ImGui::CollapsingHeader("Tessellation"))
 		{
-			ImGui::SliderInt("Minimum Level", &settings.tess.minTessLevel, 1, 64);
-			ImGui::SliderInt("Maximum Level", &settings.tess.maxTessLevel, 1, 64);
+			ImGui::SliderInt("Minimum Level", &ws.tess.min_level, 1, 64);
+			ImGui::SliderInt("Maximum Level", &ws.tess.max_level, 1, 64);
 
-			ImGui::SliderFloat("Minimum Distance", &settings.tess.minDistance, 0, 1000);
-			ImGui::SliderFloat("Maximum Distance", &settings.tess.maxDistance, 0, 1000);
+			ImGui::SliderFloat("Minimum Distance", &ws.tess.min_distance, 0, 1000);
+			ImGui::SliderFloat("Maximum Distance", &ws.tess.max_distance, 0, 1000);
 
-			ImGui::Checkbox("Tess Follow Cam", &settings.tess.tessFollowCam);
+			ImGui::Checkbox("Tess Follow Cam", reinterpret_cast<bool *>(&ws.debug.tess_follow_cam));
 		}
 
-		if (ImGui::CollapsingHeader("Camera")) {
-			ImGui::SliderFloat("Speed", &settings.cam.speed, 50.f, 500.f);
-			ImGui::SliderFloat("Sprint Factor", &settings.cam.sprintFactor, 1.f, 50.f);
+		if (ImGui::CollapsingHeader("Camera"))
+		{
+			ImGui::SliderFloat("Speed", &ws.cam.speed, 50.f, 500.f);
+			ImGui::SliderFloat("Sprint Factor", &ws.cam.sprint_factor, 1.f, 50.f);
 		}
 
 		if (ImGui::CollapsingHeader("Misc"))
 		{
-			ImGui::SliderFloat("Scale", &settings.wave.scale, 0.f, 10.f);
-			ImGui::SliderFloat("Normal Strength", &settings.wave.normalStrength, 0.f, 50.f);
-			ImGui::SliderFloat("Tex Coord Scale", &settings.wave.texCoordScale, 1.f, 50.f);
-			ImGui::Checkbox("Simulate", &settings.wave.simulate);
-			ImGui::Checkbox("Render Cubemap", &settings.wave.cubemap);
-			ImGui::Checkbox("Render Water", &settings.wave.renderWater);
-			ImGui::Checkbox("Render Wireframe", &settings.wave.renderWireframe);
+			ImGui::SliderFloat("Scale", &ws.casc.horizontal_displacement_scale, 0.f, 10.f);
+			ImGui::SliderFloat("Normal Strength", &ws.render.normal_strength, 0.f, 50.f);
+			ImGui::SliderFloat("Tex Coord Scale", &ws.render.tex_coord_scale, 1.f, 10000.f);
+			ImGui::SliderFloat("Displacement Scale Factor", &ws.casc.vertical_displacement_scale, 0.001f, 100.f);
+			ImGui::Checkbox("Simulate", reinterpret_cast<bool *>(&ws.debug.simulate_ocean));
+			ImGui::Checkbox("Render Cubemap", reinterpret_cast<bool *>(&ws.debug.render_skybox));
+			ImGui::Checkbox("Render Water", reinterpret_cast<bool *>(&ws.debug.render_ocean));
+			ImGui::Checkbox("Render Wireframe", reinterpret_cast<bool *>(&ws.debug.render_wireframe));
 
 			if (ImGui::Button("Reload Shaders"))
 			{
 				std::cout << "Reloading shaders..." << std::endl;
-				if (waterShaderProgram) {
+				if (waterShaderProgram)
+				{
 					glDeleteProgram(waterShaderProgram);
 				}
 				waterShaderProgram = reloadShaders();
 				glUseProgram(waterShaderProgram);
 				glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
-				spec.loadShaders();
+				cascade1.loadShaders();
 			}
 		}
 
@@ -258,9 +284,9 @@ void GLWaves::loop()
 		const char *selections = "DyDx\0DzDzx\0DyxDyz\0DxxDzz\0Buffer\0Displacements\0Derivatices\0Initial Spectrum\0";
 
 		ImGui::Begin("Debug Image", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-		ImGui::Combo("Select Image", &settings.wave.selection, selections);
-		ImGui::Image(reinterpret_cast<void *>(spec.getTexture((SpectrumTextures)settings.wave.selection)),
-								 ImVec2(512.f, 512.f));
+		ImGui::Combo("Select Image", &ws.debug.image_select, selections);
+		ImGui::Image(reinterpret_cast<void *>(cascade1.getTexture((SpectrumTextures)ws.debug.image_select)),
+		             ImVec2(512.f, 512.f));
 		ImGui::End();
 
 		ImGui::Render();
@@ -269,18 +295,20 @@ void GLWaves::loop()
 		glUseProgram(waterShaderProgram);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(waterModel));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
-		if (settings.tess.tessFollowCam)
+		if (ws.debug.tess_follow_cam)
 			glUniform3f(3, camPos.x, camPos.y, camPos.z);
 		else
 			glUniform3f(3, 0.f, 0.f, 0.f);
 		glUniform3f(4, 20.f, 5.f, 2.f);
-		glUniform1f(5, settings.wave.normalStrength);
-		glUniform1f(6, settings.wave.texCoordScale);
+		glUniform1f(5, ws.render.normal_strength);
+		glUniform1f(6, ws.render.tex_coord_scale);
 
-		glUniform1f(7, settings.tess.minDistance);
-		glUniform1f(8, settings.tess.maxDistance);
-		glUniform1i(9, settings.tess.minTessLevel);
-		glUniform1i(10, settings.tess.maxTessLevel);
+		glUniform1f(7, ws.tess.min_distance);
+		glUniform1f(8, ws.tess.max_distance);
+		glUniform1i(9, ws.tess.min_level);
+		glUniform1i(10, ws.tess.max_level);
+
+		glUniform1f(11, ws.casc.vertical_displacement_scale);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, displacementsTex);
@@ -288,18 +316,18 @@ void GLWaves::loop()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, derivatesTex);
 
-		if (settings.wave.renderWireframe)
+		if (ws.debug.render_wireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-		if (settings.wave.renderWater)
+		if (ws.debug.render_ocean)
 			waterPlane.draw();
 		// end water plane
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-		if (settings.wave.cubemap)
+		if (ws.debug.render_skybox)
 			sb.render(view, projection);
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -307,8 +335,10 @@ void GLWaves::loop()
 		glfwSwapBuffers(window);
 	}
 
+	ws.save();
+
 	sb.cleanup();
-	spec.cleanup();
+	cascade1.cleanup();
 	waterPlane.destroy();
 }
 
@@ -356,8 +386,13 @@ glm::mat4 GLWaves::computeViewMatrix(GLFWwindow *win, float delta, float mouseSp
 	return glm::lookAt(camPos, camPos + dir, up);
 }
 
-void GLWaves::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-														const GLchar *message, const void *userParam)
+void GLWaves::debugCallback(GLenum source,
+                            GLenum type,
+                            GLuint id,
+                            GLenum severity,
+                            GLsizei length,
+                            const GLchar *message,
+                            const void *userParam)
 {
 	if (type == GL_DEBUG_TYPE_ERROR)
 	{

@@ -11,10 +11,10 @@ layout(binding = 1) uniform sampler2D DerivativesTex;
 layout(location = 3) uniform vec3 camPos;
 layout(location = 4) uniform vec3 lightPos;
 layout(location = 5) uniform float normalStrength;
+layout(location = 6) uniform float texCoordScale;
 
 void main() {
-	vec4 derivative = texture(DerivativesTex, fragPos.xz / 250);
-	derivative *= 5;
+	vec4 derivative = texture(DerivativesTex, fragPos.xz / texCoordScale);
 	vec3 norm = normalize(vec3(normalStrength * derivative.x / (1 + derivative.z), 1, normalStrength * derivative.y / (1 + derivative.w)));
 
 	// Frag Space
@@ -36,7 +36,6 @@ void main() {
 	diffuse *= light_color;
 
 	color = vec4(vec3(0.0, 0.15, 0.3) + diffuse + ambient + spec, 1);
-	//color = vec4(vec3(0.5, 0.15, 0.3) + diffuse + ambient + spec, 1);
 
 	//color = vec4(15 * norm.x, norm.y * 0.4, 15 * norm.z, 1);
 	// color = vec4(norm.xyz, 1);

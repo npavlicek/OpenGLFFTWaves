@@ -22,18 +22,21 @@ enum SpectrumTextures
 	Buffer,
 	Displacements,
 	Derivates,
-	InitialSpectrum
+	WorkingSpectrum,
+	RandomData,
 };
 
 class Spectrum
 {
 public:
-	void init(int size, int patchSize);
+	void init(int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow,
+						float cutoffHigh);
 	void cleanup();
 	void updateSpectrumTexture();
 	void fft();
 	void combineTextures(float scale);
-	void regen(int size, int patchSize, float scale);
+	void regen(int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow,
+						 float cutoffHigh);
 	void loadShaders();
 	GLuint getTexture(SpectrumTextures texType)
 	{
@@ -43,10 +46,10 @@ public:
 private:
 	int size, log2size, patchSize;
 	float scale;
-	Color *spectrum;
+	float cutoffLow, cutoffHigh;
+	float depth, fetch, windSpeed;
 
 	static std::vector<int> reverseIndices;
-	static Color *randomData;
 	static bool initDataGenerated;
 
 	std::chrono::time_point<std::chrono::system_clock> start;
@@ -63,6 +66,6 @@ private:
 	void genInitDataAndUpload();
 	int reverseBitsR(int num, int depth);
 
-	int numTextures = 8;
+	int numTextures = 9;
 	GLuint *textures;
 };

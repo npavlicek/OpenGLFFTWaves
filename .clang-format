@@ -1,5 +1,7 @@
 BasedOnStyle: Microsoft
 Language: Cpp
-UseTab: ForContinuationAndIndentation
+UseTab: AlignWithSpaces 
 IndentWidth: 2
 TabWidth: 2
+BinPackArguments: false
+BinPackParameters: false

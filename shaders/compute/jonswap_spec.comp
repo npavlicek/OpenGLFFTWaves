@@ -4,76 +4,91 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(binding = 0, rgba16f) uniform image2D spectrum;
+layout(binding = 0, rgba32f) uniform image2D spectrum;
+layout(binding = 1, rgba32f) uniform image2D randomData;
 
 layout(location = 0) uniform int patchSize;
+layout(location = 1) uniform float in_WindSpeed;
+layout(location = 2) uniform float in_Fetch;
+layout(location = 3) uniform float in_Depth;
 
-float jonswap(float omega) {
+layout(location = 4) uniform float in_CutoffLow;
+layout(location = 5) uniform float in_CutoffHigh;
+
+float dispersion(float wavelength) {
+	return sqrt(wavelength * 9.81);
+}
+
+float dispersiond(float wavelength) {
+	return 9.81 / (2 * sqrt(9.81 * wavelength));
+}
+
+float tma(float omega, float height) {
+	float omega_h = omega * sqrt(height / 9.81);
+	if (omega_h > 1) {
+		return 1.0-(pow(2.0-omega_h, 2)/2.0);
+	} else {
+		return pow(omega_h, 2.0)/2.0;
+	}
+}
+
+float donelanBanner(float omega, float omega_p, float theta) {
+	float ratio = omega / omega_p;
+	float Bs = 0.0;
+	if (ratio < 0.95) {
+		Bs = 2.61 * pow(ratio, 1.3);
+	} else if (ratio < 1.6) {
+		Bs = 2.28 * pow(ratio, -1.3);
+	} else {
+		float e = -0.4 + 0.8393 * exp(-0.567 * log(pow(ratio, 2)));
+		Bs = pow(10.0, e);
+	}
+
+	return Bs / (2.0 * tanh(Bs * PI) * pow(cosh(Bs * theta), 2));
+}
+
+float jonswap(float omega, float omega_p, float grav, float grav_sqrd, float fetch, float windspeed) {
+	float alpha = 0.076 * pow(pow(windspeed, 2) / (fetch * grav), 0.22);
+	float firstTerm = alpha * grav_sqrd / pow(omega, 5);
+	float sigma = omega > omega_p ? 0.09 : 0.07;
+	float r = exp(-(pow(omega - omega_p, 2)/(2*pow(sigma, 2)*pow(omega_p, 2))));
 	float gamma = 3.3;
-	float gravity = 9.81;
-	float fetch = 800.0;
-	float avgWindSpeed = 25.0;
-
-	float omega_p = 22.0 * pow((pow(gravity, 2.0) / (avgWindSpeed * fetch)), 1.0/3.0);
-
-	float sigma = (omega > omega_p) ? 0.09 : 0.07;
-
-	float alpha = pow(pow(avgWindSpeed, 2.0) / (fetch * gravity), 0.22) * 0.076;
-
-	float r = -pow(omega - omega_p, 2.0)/(2.0 * pow(sigma, 2.0) * pow(omega_p, 2.0));
-	r = exp(r);
-
-	float res = alpha * pow(gravity, 2.0) / pow(omega, 5.0);
-	res *= exp(-(5.0/4.0)*pow(omega_p/omega, 4.0));
-	res *= pow(gamma, r);
-
-	if (isnan(res)) res = 0.0;
-
-	return r;
+	return firstTerm * exp((-5.0 / 4.0) * pow(omega_p / omega, 4)) * pow(gamma, r);
 }
 
-float dispersion(float k_mag)
-{
-	return sqrt(9.81 * k_mag);
-}
-
-float dispersion_der(float k_mag)
-{
-	return sqrt(9.81) / 2.0 / sqrt(k_mag);
+float spec(float omega, float windspeed, float fetch, float height, float theta) {
+	float grav = 9.81;
+	float grav_sqrd = grav * grav;
+	float omega_p = 22.0 * (grav_sqrd / (windspeed * fetch));
+	float jonswp = jonswap(omega, omega_p, grav, grav_sqrd, fetch, windspeed);
+	//float tmaspec = tma(omega, height);
+	//float swell = donelanBanner(omega, omega_p, theta);
+	return jonswp; // * tmaspec; //* swell * tmaspec;
 }
 
 void main() {
-	uvec3 id = gl_GlobalInvocationID;
+	float dx = 2.0 * PI / patchSize;
+	vec2 wavevector = vec2(gl_GlobalInvocationID.xy);
+	wavevector -= imageSize(spectrum) / 2.0;
+	wavevector *= dx; 
 
-	ivec2 size = imageSize(spectrum);
+	float wavelength = length(wavevector);
 
-	float n = id.x - size.x / 2.0;
-	float m = id.y - size.y / 2.0;
+	if (wavelength >= in_CutoffLow && wavelength < in_CutoffHigh) {
+		// angular freq
+		float omega = dispersion(wavelength);
+		float omegad = dispersiond(wavelength);
+		if (omega < 0.00001) omega = 0.00001;
+		if (omegad < 0.00001) omegad = 0.00001;
 
-	float delta = 2.0 * PI / patchSize;
+		float s = spec(omega, in_WindSpeed, in_Fetch, in_Depth, atan(wavevector.y, wavevector.x)) * omegad / wavelength;
 
-	vec2 k = vec2(n * delta, m * delta);
-	vec2 k_neg = -k;
+		vec4 rd = imageLoad(randomData, ivec2(gl_GlobalInvocationID.xy));
 
-	float k_mag = length(k);
-	if (k_mag < 0.00001) k_mag = 0.00001;
+		vec4 res = rd * sqrt(2 * s * dx * dx);
 
-	float omega = dispersion(k_mag);
-	float dOmega = dispersion_der(k_mag);
-	float js = sqrt(2.0 * jonswap(omega) * dOmega * delta * delta / k_mag / (2 * PI));
-
-	vec4 val = imageLoad(spectrum, ivec2(id.xy));
-
-	float newR = val.r * js;
-	float newG = val.g * js;
-	float newB = val.b * js;
-	float newA = val.a * -js;
-
-	if (isnan(newR)) newR = 0.0;
-	if (isnan(newG)) newG = 0.0;
-	if (isnan(newB)) newB = 0.0;
-	if (isnan(newA)) newA = 0.0;
-
-	imageStore(spectrum, ivec2(id.xy), vec4(newR, newG, newB, newA));
-	//imageStore(spectrum, ivec2(id.xy), vec4(jonswap(omega), dOmega, 0, 1));
+		imageStore(spectrum, ivec2(gl_GlobalInvocationID.xy), res); 
+	} else {
+		imageStore(spectrum, ivec2(gl_GlobalInvocationID.xy), vec4(0));
+	}
 }

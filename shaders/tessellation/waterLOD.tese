@@ -14,6 +14,8 @@ layout(location = 2) uniform mat4 projection;
 
 layout(location = 6) uniform float texCoordScale;
 
+layout(location = 11) uniform float displacementScaleFactor;
+
 layout(binding = 0) uniform sampler2D DisplacementsTex;
 
 void main()
@@ -41,8 +43,8 @@ void main()
 
 	fragPos = vec3(model * vec4(newPos, 1));
 
-	vec4 displacement = inverse(model) * texture(DisplacementsTex, fragPos.xz / 250);
-	displacement.y *= 5;
+	vec4 displacement = inverse(model) * texture(DisplacementsTex, fragPos.xz / texCoordScale);
+	displacement.y *= displacementScaleFactor;
 
 	gl_Position = projection * view * model * vec4(newPos + displacement.xyz, 1);
 }
