@@ -72,6 +72,7 @@ std::istream &operator>>(std::istream &is, WaveSettings &ws)
 	>> ws.casc.patch_size
 	>> ws.casc.select_tex_res;
 	// clang-format on
+
 	return is;
 }
 
@@ -91,7 +92,10 @@ void WaveSettings::load()
 {
 	std::fstream file{fileName, std::ios::in};
 	if (!file.is_open())
+	{
+		std::cout << "Could not find settings file\nLoading defaults" << std::endl;
 		return;
+	}
 	file >> *this;
 	file.close();
 }

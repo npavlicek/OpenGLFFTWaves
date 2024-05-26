@@ -47,6 +47,8 @@ struct WaveSettings
 		float cutoffHigh = 1000.f;
 		int resolution = 512;
 		int patch_size = 250;
+		// I doubt this will change in the future but this setting should correspond to the initial resolution value in
+		// WaveSettings::casc::resolution these two work together in our ImGui::Combo to select the desired resolution
 		int select_tex_res = 1;
 	} casc;
 

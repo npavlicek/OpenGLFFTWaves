@@ -22,5 +22,5 @@ void main()
 	vec4 DxxDzz = imageLoad(DxxDzzTex, id);
 
 	imageStore(Displacements, id, vec4(DyDx.y * scale, DyDx.x, DzDzx.x * scale, 0));
-	imageStore(Derivatives, id, vec4(DyxDyz.xy, DxxDzz.xy * scale));
+	imageStore(Derivatives, id, vec4(DyxDyz.xy * scale, DxxDzz.xy * scale));
 }

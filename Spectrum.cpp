@@ -16,8 +16,8 @@
 std::vector<int> Spectrum::reverseIndices = std::vector<int>();
 bool Spectrum::initDataGenerated = false;
 
-void Spectrum::init(int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow,
-										float cutoffHigh)
+void Spectrum::init(
+		int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow, float cutoffHigh)
 {
 	this->size = size;
 	this->log2size = static_cast<int>(log2(size));
@@ -54,8 +54,8 @@ void Spectrum::init(int size, int patchSize, float scale, float depth, float fet
 	genInitDataAndUpload();
 }
 
-void Spectrum::regen(int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow,
-										 float cutoffHigh)
+void Spectrum::regen(
+		int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow, float cutoffHigh)
 {
 	this->size = size;
 	this->patchSize = patchSize;
@@ -154,10 +154,11 @@ void Spectrum::formatTextures()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	glObjectLabel(GL_TEXTURE, textures[Derivates], 12, "Derivatives");
-	glObjectLabel(GL_TEXTURE, textures[WorkingSpectrum], 17, "Working Spectrum");
+	glObjectLabel(GL_TEXTURE, textures[Derivates], -1, "Derivatives");
+	glObjectLabel(GL_TEXTURE, textures[Displacements], -1, "Displacements");
+	glObjectLabel(GL_TEXTURE, textures[WorkingSpectrum], -1, "Working Spectrum");
 	glObjectLabel(GL_TEXTURE, textures[RandomData], -1, "Random Data");
-	glObjectLabel(GL_TEXTURE, textures[DyDx], 8, "DyDxTex");
+	glObjectLabel(GL_TEXTURE, textures[DyDx], -1, "DyDxTex");
 }
 
 void Spectrum::combineTextures(float scale)
