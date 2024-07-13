@@ -100,10 +100,10 @@ GLuint reloadShaders()
 {
 	// clang-format off
 	std::vector<GLuint> waterShaders = {
-		loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/water_shader.spv"),
-		loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/water_shader.spv"),
-		loadShader(GL_TESS_CONTROL_SHADER, "shaders/compiled/tcs/waterLOD.spv"),
-		loadShader(GL_TESS_EVALUATION_SHADER, "shaders/compiled/tes/waterLOD.spv")
+		loadShader(GL_VERTEX_SHADER, "./shaders/compiled/vertex/water_shader.spv"),
+		loadShader(GL_FRAGMENT_SHADER, "./shaders/compiled/fragment/water_shader.spv"),
+		loadShader(GL_TESS_CONTROL_SHADER, "./shaders/compiled/tcs/waterLOD.spv"),
+		loadShader(GL_TESS_EVALUATION_SHADER, "./shaders/compiled/tes/waterLOD.spv")
 	};
 	// clang-format on
 

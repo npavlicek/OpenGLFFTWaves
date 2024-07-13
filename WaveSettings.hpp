@@ -52,7 +52,7 @@ struct WaveSettings
 		int select_tex_res = 1;
 	} casc;
 
-	const char *fileName = "wave_settings.ini";
+	const char *const fileName = "wave_settings.ini";
 
 	void load();
 	void save();

@@ -14,46 +14,38 @@ Skybox::Skybox()
 {
 }
 
-const char* texs[] = {
-	"px.png",
-	"nx.png",
-	"py.png",
-	"ny.png",
-	"pz.png",
-	"nz.png"
-};
+const char *texs[] = {"px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"};
 
 const GLfloat verts[] = {
-	-1.f, -1.f, -1.f, // Back bottom left
-	1.f, -1.f, -1.f, // Back bottom right
-	-1.f, 1.f, -1.f, // Back top left
-	1.f, 1.f, -1.f, // Back top right
+		-1.f, -1.f, -1.f, // Back bottom left
+		1.f,  -1.f, -1.f, // Back bottom right
+		-1.f, 1.f,  -1.f, // Back top left
+		1.f,  1.f,  -1.f, // Back top right
 
-
-	-1.f, -1.f, 1.f, // Front bottom left
-	1.f, -1.f, 1.f, // Front bottom right
-	-1.f, 1.f, 1.f, // Front top left
-	1.f, 1.f, 1.f, // Front top right
+		-1.f, -1.f, 1.f, // Front bottom left
+		1.f,  -1.f, 1.f, // Front bottom right
+		-1.f, 1.f,  1.f, // Front top left
+		1.f,  1.f,  1.f, // Front top right
 };
 
 const GLubyte indices[] = {
-	0, 2, 3, // Back face
-	0, 3, 1,
+		0, 2, 3, // Back face
+		0, 3, 1,
 
-	4, 2, 0, // Left face
-	4, 6, 2,
+		4, 2, 0, // Left face
+		4, 6, 2,
 
-	5, 3, 7, // Right face
-	5, 1, 3,
+		5, 3, 7, // Right face
+		5, 1, 3,
 
-	4, 7, 6, // Front face
-	4, 5, 7,
+		4, 7, 6, // Front face
+		4, 5, 7,
 
-	6, 7, 2, // Top Face
-	7, 3, 2,
+		6, 7, 2, // Top Face
+		7, 3, 2,
 
-	4, 0, 5, // Bottom Face
-	5, 0, 1,
+		4, 0, 5, // Bottom Face
+		5, 0, 1,
 };
 
 GLuint cubemapID;
@@ -64,20 +56,24 @@ GLuint skyboxEAB;
 
 void Skybox::init()
 {
-	shaderProgram = linkProgram({loadShader(GL_FRAGMENT_SHADER, "shaders/compiled/fragment/skybox.spv"), loadShader(GL_VERTEX_SHADER, "shaders/compiled/vertex/skybox.spv")});
+	shaderProgram = linkProgram({loadShader(GL_FRAGMENT_SHADER, "./shaders/compiled/fragment/skybox.spv"),
+	                             loadShader(GL_VERTEX_SHADER, "./shaders/compiled/vertex/skybox.spv")});
 
 	glGenTextures(1, &cubemapID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
 	glObjectLabel(GL_TEXTURE, cubemapID, 7, "cubemap");
 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 6; i++)
+	{
 		int width, height, channels;
-		stbi_uc *data = stbi_load(texs[i], &width, &height, &channels, 0); 
-		if (data) {
+		stbi_uc *data = stbi_load(texs[i], &width, &height, &channels, 0);
+		if (data)
+		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			stbi_image_free(data);
-
-		} else std::cerr << "could not find cubemap file!" << std::endl;
+		}
+		else
+			std::cerr << "could not find cubemap file!" << std::endl;
 	}
 
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

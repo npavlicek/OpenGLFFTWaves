@@ -87,13 +87,13 @@ void Spectrum::loadShaders()
 		glDeleteProgram(combineShader);
 	}
 
-	jonswapShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/jonswap_spec.spv")});
-	phillipsShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/phillips_spec.spv")});
-	conjugateShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/conjugate.spv")});
-	butterflyShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/butterfly.spv")});
-	timeSpectrumShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/time_spec.spv")});
-	fftShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/fft.spv")});
-	combineShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "shaders/compiled/compute/combine_tex.spv")});
+	jonswapShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/jonswap_spec.spv")});
+	phillipsShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/phillips_spec.spv")});
+	conjugateShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/conjugate.spv")});
+	butterflyShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/butterfly.spv")});
+	timeSpectrumShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/time_spec.spv")});
+	fftShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/fft.spv")});
+	combineShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/combine_tex.spv")});
 }
 
 void Spectrum::genInitDataAndUpload()

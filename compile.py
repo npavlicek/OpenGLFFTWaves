@@ -1,3 +1,5 @@
+#!/bin/python3
+
 import glob
 import subprocess
 from pathlib import Path
@@ -35,29 +37,30 @@ def compile_shaders(type, shaders):
 	print(f'Compiling {type} shaders...')
 	for s in shaders:
 		filename = Path(s).name.split('.')[0]
-		command = f'glslc {s} {glslc_opts} -o .\\shaders\\compiled\\{type}\\{filename}.spv'
+		command = f'glslc {s} {glslc_opts} -o ./shaders/compiled/{type}/{filename}.spv'
 		print(command)
-		output = subprocess.run(command, capture_output=True)
+		output = subprocess.run(command, capture_output=True, shell=True)
 		if output.returncode != 0:
 			print('ERROR: ' + output.stderr.decode())
 	print()
 
 if do_compile_shaders:
 	# Create missing directories
-	compiled_shader_dir = r'.\shaders\compiled'
+	compiled_shader_dir = r'./shaders/compiled'
 	for s in shader_types:
-		dir = Path(f"{compiled_shader_dir}\\{s}")
+		dir = Path(f"{compiled_shader_dir}/{s}")
 		if not dir.exists():
 			print(f"{dir} does not exist. Creating directory...")
 			Path.mkdir(dir, parents=True, exist_ok=True)
 	print()
 
 	# Get list of shaders
-	compute_shaders = glob.glob(r".\shaders\compute\*.comp")
-	vertex_shaders = glob.glob(r".\shaders\vertex\*.vert")
-	fragment_shaders = glob.glob(r".\shaders\fragment\*.frag")
-	tcs_shaders = glob.glob(r".\shaders\tessellation\*.tesc")
-	tes_shaders = glob.glob(r".\shaders\tessellation\*.tese")
+	# TODO: resolve these pathnames better for linux/windows
+	compute_shaders = glob.glob(r"./shaders/compute/*.comp")
+	vertex_shaders = glob.glob(r"./shaders/vertex/*.vert")
+	fragment_shaders = glob.glob(r"./shaders/fragment/*.frag")
+	tcs_shaders = glob.glob(r"./shaders/tessellation/*.tesc")
+	tes_shaders = glob.glob(r"./shaders/tessellation/*.tese")
 
 
 	# Compile the shaders
@@ -70,7 +73,7 @@ if do_compile_shaders:
 if do_compile_program:
 	# Finally compile the app
 	print('Compiling application...')
-	output = subprocess.Popen('cmake --build build -j 8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	output = subprocess.Popen('cmake --build build -j 8', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	while output.poll() is None:
 		l = output.stdout.readline()
 		sys.stdout.write(l.decode())

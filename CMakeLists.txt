@@ -18,8 +18,8 @@ target_include_directories(imgui PUBLIC ${IMGUI_PATH}/backends)
 target_link_libraries(imgui PUBLIC glfw)
 
 # compile glad library
-add_library(glad STATIC "${GLAD_PATH}/gl.c")
-target_include_directories(glad PUBLIC "./include")
+add_library(glad STATIC "${GLAD_PATH}/src/gl.c")
+target_include_directories(glad PUBLIC "${GLAD_PATH}/include")
 
 # finally compile the executable
 add_executable(OpenGLWaves main.cpp plane.cpp Shader.cpp Spectrum.cpp GLWaves.cpp Skybox.cpp WaveSettings.cpp)
