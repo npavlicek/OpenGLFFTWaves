@@ -125,7 +125,10 @@ void GLWaves::loop()
 	              ws.casc.fetch,
 	              ws.casc.wind_speed,
 	              ws.casc.cutoffLow,
-	              ws.casc.cutoffHigh);
+	              ws.casc.cutoffHigh,
+	              ws.casc.spread_blend,
+	              ws.casc.swell,
+	              ws.casc.angle);
 
 	GLuint displacementsTex = cascade1.getTexture(Displacements);
 	GLuint derivatesTex = cascade1.getTexture(Derivates);
@@ -211,6 +214,9 @@ void GLWaves::loop()
 			ImGui::SliderFloat("Wind Speed", &ws.casc.wind_speed, 1.f, 100.f);
 			ImGui::SliderFloat("Cutoff Low", &ws.casc.cutoffLow, 1.f, 100.f);
 			ImGui::SliderFloat("Cutoff High", &ws.casc.cutoffHigh, 1.f, 100.f);
+			ImGui::SliderFloat("Spread Blend", &ws.casc.spread_blend, 0.f, 1.f);
+			ImGui::SliderFloat("Swell", &ws.casc.swell, 0.f, 100.f);
+			ImGui::SliderFloat("Angle", &ws.casc.angle, 0.f, 3.14f * 2.f);
 
 			if (ImGui::Button("Regenerate Textures"))
 			{
@@ -221,7 +227,10 @@ void GLWaves::loop()
 				               ws.casc.fetch,
 				               ws.casc.wind_speed,
 				               ws.casc.cutoffLow,
-				               ws.casc.cutoffHigh);
+				               ws.casc.cutoffHigh,
+				               ws.casc.spread_blend,
+				               ws.casc.swell,
+				               ws.casc.angle);
 			}
 		}
 

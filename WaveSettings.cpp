@@ -34,7 +34,10 @@ std::ostream &operator<<(std::ostream &os, const WaveSettings ws)
 	write(ws.casc.cutoffHigh)
 	write(ws.casc.resolution)
 	write(ws.casc.patch_size)
-	write(ws.casc.select_tex_res);
+	write(ws.casc.select_tex_res)
+	write(ws.casc.spread_blend)
+	write(ws.casc.swell)
+	write(ws.casc.angle);
 	// clang-format on
 
 	return os;
@@ -70,7 +73,10 @@ std::istream &operator>>(std::istream &is, WaveSettings &ws)
 	>> ws.casc.cutoffHigh
 	>> ws.casc.resolution
 	>> ws.casc.patch_size
-	>> ws.casc.select_tex_res;
+	>> ws.casc.select_tex_res
+	>> ws.casc.spread_blend
+	>> ws.casc.swell
+	>> ws.casc.angle;
 	// clang-format on
 
 	return is;

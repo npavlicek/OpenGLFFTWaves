@@ -30,13 +30,13 @@ class Spectrum
 {
 public:
 	void init(int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow,
-						float cutoffHigh);
+						float cutoffHigh, float spread_blend, float swell, float angle);
 	void cleanup();
 	void updateSpectrumTexture();
 	void fft();
 	void combineTextures(float scale);
 	void regen(int size, int patchSize, float scale, float depth, float fetch, float windSpeed, float cutoffLow,
-						 float cutoffHigh);
+						float cutoffHigh, float spread_blend, float swell, float angle);
 	void loadShaders();
 	GLuint getTexture(SpectrumTextures texType)
 	{
@@ -48,6 +48,7 @@ private:
 	float scale;
 	float cutoffLow, cutoffHigh;
 	float depth, fetch, windSpeed;
+	float spread_blend, swell, angle;
 
 	static std::vector<int> reverseIndices;
 	static bool initDataGenerated;
