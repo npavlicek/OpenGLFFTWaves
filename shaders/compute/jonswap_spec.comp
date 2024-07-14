@@ -15,6 +15,30 @@ layout(location = 3) uniform float in_Depth;
 layout(location = 4) uniform float in_CutoffLow;
 layout(location = 5) uniform float in_CutoffHigh;
 
+float NormalizationFactor(float s) {
+    float s2 = s * s;
+    float s3 = s2 * s;
+    float s4 = s3 * s;
+    if (s < 5) return -0.000564f * s4 + 0.00776f * s3 - 0.044f * s2 + 0.192f * s + 0.163f;
+    else return -4.80e-08f * s4 + 1.07e-05f * s3 - 9.53e-04f * s2 + 5.90e-02f * s + 3.93e-01f;
+}
+
+float Cosine2s(float theta, float s) {
+	return NormalizationFactor(s) * pow(abs(cos(0.5f * theta)), 2.0f * s);
+}
+
+float SpreadPower(float omega, float peakOmega) {
+	if (omega > peakOmega)
+		return 9.77f * pow(abs(omega / peakOmega), -2.5f);
+	else
+		return 6.97f * pow(abs(omega / peakOmega), 5.0f);
+}
+
+float DirectionSpectrum(float theta, float omega, float spread_blend, float swell, float peak_omega, float angle) {
+	float s = SpreadPower(omega, peak_omega) + 16 * tanh(min(omega / peak_omega, 20)) * swell * swell;
+	return mix(2.0f / 3.1415f * cos(theta) * cos(theta), Cosine2s(theta - angle, s), spread_blend);
+}
+
 float dispersion(float wavelength) {
 	return sqrt(wavelength * 9.81);
 }
@@ -63,7 +87,7 @@ float spec(float omega, float windspeed, float fetch, float height, float theta)
 	float jonswp = jonswap(omega, omega_p, grav, grav_sqrd, fetch, windspeed);
 	float tmaspec = tma(omega, height);
 	float swell = donelanBanner(omega, omega_p, theta);
-	return jonswp * tmaspec * swell;
+	return jonswp * tmaspec * swell * DirectionSpectrum(theta, omega, 1.0, 0.5, omega_p, 3.14/2.0);
 }
 
 void main() {
