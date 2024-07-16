@@ -25,19 +25,27 @@ std::ostream &operator<<(std::ostream &os, const WaveSettings ws)
 	write(ws.cam.sprint_factor)
 	write(ws.render.normal_strength)
 	write(ws.render.tex_coord_scale)
-	write(ws.casc.depth)
-	write(ws.casc.fetch)
-	write(ws.casc.wind_speed)
-	write(ws.casc.vertical_displacement_scale)
-	write(ws.casc.horizontal_displacement_scale)
-	write(ws.casc.cutoffLow)
-	write(ws.casc.cutoffHigh)
-	write(ws.casc.resolution)
-	write(ws.casc.patch_size)
-	write(ws.casc.select_tex_res)
-	write(ws.casc.spread_blend)
-	write(ws.casc.swell)
-	write(ws.casc.angle);
+	write(ws.casc1.depth)
+	write(ws.casc1.fetch)
+	write(ws.casc1.wind_speed)
+	write(ws.casc1.vertical_displacement_scale)
+	write(ws.casc1.horizontal_displacement_scale)
+	write(ws.casc1.cutoffLow)
+	write(ws.casc1.cutoffHigh)
+	write(ws.casc1.resolution)
+	write(ws.casc1.patch_size)
+	write(ws.casc1.select_tex_res)
+	write(ws.casc1.spread_blend)
+	write(ws.casc1.swell)
+	write(ws.casc1.angle)
+	write(ws.casc2.cutoffLow)
+	write(ws.casc2.cutoffHigh)
+	write(ws.casc2.patch_size)
+	write(ws.casc2.depth)
+	write(ws.casc3.cutoffLow)
+	write(ws.casc3.cutoffHigh)
+	write(ws.casc3.patch_size)
+	write(ws.casc3.depth);
 	// clang-format on
 
 	return os;
@@ -64,19 +72,27 @@ std::istream &operator>>(std::istream &is, WaveSettings &ws)
 	>> ws.cam.sprint_factor
 	>> ws.render.normal_strength
 	>> ws.render.tex_coord_scale
-	>> ws.casc.depth
-	>> ws.casc.fetch
-	>> ws.casc.wind_speed
-	>> ws.casc.vertical_displacement_scale
-	>> ws.casc.horizontal_displacement_scale
-	>> ws.casc.cutoffLow
-	>> ws.casc.cutoffHigh
-	>> ws.casc.resolution
-	>> ws.casc.patch_size
-	>> ws.casc.select_tex_res
-	>> ws.casc.spread_blend
-	>> ws.casc.swell
-	>> ws.casc.angle;
+	>> ws.casc1.depth
+	>> ws.casc1.fetch
+	>> ws.casc1.wind_speed
+	>> ws.casc1.vertical_displacement_scale
+	>> ws.casc1.horizontal_displacement_scale
+	>> ws.casc1.cutoffLow
+	>> ws.casc1.cutoffHigh
+	>> ws.casc1.resolution
+	>> ws.casc1.patch_size
+	>> ws.casc1.select_tex_res
+	>> ws.casc1.spread_blend
+	>> ws.casc1.swell
+	>> ws.casc1.angle
+	>> ws.casc2.cutoffLow
+	>> ws.casc2.cutoffHigh
+	>> ws.casc2.patch_size
+	>> ws.casc2.depth
+	>> ws.casc3.cutoffLow
+	>> ws.casc3.cutoffHigh
+	>> ws.casc3.patch_size
+	>> ws.casc3.depth;
 	// clang-format on
 
 	return is;

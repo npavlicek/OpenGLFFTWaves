@@ -45,15 +45,29 @@ struct WaveSettings
 		float horizontal_displacement_scale = 1.f;
 		float cutoffLow = 0.f;
 		float cutoffHigh = 1000.f;
-		int resolution = 512;
+		int resolution = 256;
 		int patch_size = 250;
 		float swell = 1.f;
 		float spread_blend = 1.f;
 		float angle = 0.f;
 		// I doubt this will change in the future but this setting should correspond to the initial resolution value in
 		// WaveSettings::casc::resolution these two work together in our ImGui::Combo to select the desired resolution
-		int select_tex_res = 1;
-	} casc;
+		int select_tex_res = 0;
+	} casc1;
+	struct
+	{
+		float cutoffLow = 0.f;
+		float cutoffHigh = 1000.f;
+		int patch_size = 250;
+		float depth = 1.f;
+	} casc2;
+	struct
+	{
+		float cutoffLow = 0.f;
+		float cutoffHigh = 0.f;
+		int patch_size = 250;
+		float depth = 1.f;
+	} casc3;
 
 	const char *const fileName = "wave_settings.ini";
 

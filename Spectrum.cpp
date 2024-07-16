@@ -100,7 +100,7 @@ void Spectrum::regen(int size,
 
 void Spectrum::loadShaders()
 {
-	if (jonswapShader)
+	if (shaders_loaded)
 	{
 		glDeleteProgram(jonswapShader);
 		glDeleteProgram(phillipsShader);
@@ -110,6 +110,8 @@ void Spectrum::loadShaders()
 		glDeleteProgram(fftShader);
 		glDeleteProgram(combineShader);
 	}
+
+	shaders_loaded = true;
 
 	jonswapShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/jonswap_spec.spv")});
 	phillipsShader = linkProgram({loadShader(GL_COMPUTE_SHADER, "./shaders/compiled/compute/phillips_spec.spv")});

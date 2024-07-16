@@ -59,6 +59,8 @@ private:
 	GLuint butterflyTexture;
 	GLuint reverseIndexBuffer;
 
+	bool shaders_loaded = false;
+
 	void dispatchFFT(GLuint spectrum);
 	void generateGaussianDist();
 	void calculateReverseIndices();

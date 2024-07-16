@@ -59,19 +59,17 @@ void Plane::genGeometry()
 		{
 			int index = (j * startLOD + i) * 4;
 
-			// clang-format off
-			vertices[index] = vertex{glm::vec3{i * interval, 0.f, j * interval},
-								glm::vec2{i * texInterval, 1 - j * texInterval}};
+			vertices[index] =
+					vertex{glm::vec3{i * interval, 0.f, j * interval}, glm::vec2{i * texInterval, 1 - j * texInterval}};
 
 			vertices[index + 1] = vertex{glm::vec3{i * interval, 0.f, j * interval + interval},
-									glm::vec2{i * texInterval, 1 - j * texInterval - texInterval}};
+			                             glm::vec2{i * texInterval, 1 - j * texInterval - texInterval}};
 
 			vertices[index + 2] = vertex{glm::vec3{i * interval + interval, 0.f, j * interval + interval},
-									glm::vec2{i * texInterval + texInterval, 1 - j * texInterval - texInterval}};
+			                             glm::vec2{i * texInterval + texInterval, 1 - j * texInterval - texInterval}};
 
 			vertices[index + 3] = vertex{glm::vec3{i * interval + interval, 0.f, j * interval},
-									glm::vec2{i * texInterval + texInterval, 1 - j * texInterval}};
-			// clang-format on
+			                             glm::vec2{i * texInterval + texInterval, 1 - j * texInterval}};
 		}
 	}
 

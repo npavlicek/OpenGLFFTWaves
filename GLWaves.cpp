@@ -46,7 +46,7 @@ void GLWaves::init()
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugCallback, nullptr);
 
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
@@ -110,25 +110,210 @@ GLuint reloadShaders()
 	return linkProgram(waterShaders);
 }
 
+void GLWaves::drawUI(Plane &waterPlane, GLuint waterShaderProgram, glm::mat4 projection)
+{
+	ImGui::NewFrame();
+
+	ImGui::Begin("Settings", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+
+	ImGui::Text("Press E to release the mouse cursor");
+
+	ImGui::Text("Cam Pos: %f %f %f", camPos.x, camPos.y, camPos.z);
+
+	if (ImGui::CollapsingHeader("Spectrum Textures"))
+	{
+		if (ImGui::Combo("Size", &ws.casc1.select_tex_res, "256x256\000512x512\0001024x1024\0"))
+		{
+			switch (ws.casc1.select_tex_res)
+			{
+			case 0:
+				ws.casc1.resolution = 256;
+				break;
+			case 1:
+				ws.casc1.resolution = 512;
+				break;
+			case 2:
+				ws.casc1.resolution = 1024;
+			}
+		}
+
+		if (ImGui::TreeNode("Cascade 1"))
+		{
+			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &ws.casc1.patch_size);
+			ImGui::SliderFloat("Cutoff Low", &ws.casc1.cutoffLow, 1.f, 100.f);
+			ImGui::SliderFloat("Cutoff High", &ws.casc1.cutoffHigh, 1.f, 100.f);
+			ImGui::SliderFloat("Depth", &ws.casc1.depth, 1.f, 100.f);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Cascade 2"))
+		{
+			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &ws.casc2.patch_size);
+			ImGui::SliderFloat("Cutoff Low", &ws.casc2.cutoffLow, 1.f, 100.f);
+			ImGui::SliderFloat("Cutoff High", &ws.casc2.cutoffHigh, 1.f, 100.f);
+			ImGui::SliderFloat("Depth", &ws.casc2.depth, 1.f, 100.f);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Cascade 3"))
+		{
+			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &ws.casc3.patch_size);
+			ImGui::SliderFloat("Cutoff Low", &ws.casc3.cutoffLow, 1.f, 100.f);
+			ImGui::SliderFloat("Cutoff High", &ws.casc3.cutoffHigh, 1.f, 100.f);
+			ImGui::SliderFloat("Depth", &ws.casc3.depth, 1.f, 100.f);
+			ImGui::TreePop();
+		}
+
+		ImGui::SliderFloat("Fetch", &ws.casc1.fetch, 1.f, 100.f);
+		ImGui::SliderFloat("Wind Speed", &ws.casc1.wind_speed, 1.f, 100.f);
+		ImGui::SliderFloat("Spread Blend", &ws.casc1.spread_blend, 0.f, 1.f);
+		ImGui::SliderFloat("Swell", &ws.casc1.swell, 0.f, 100.f);
+		ImGui::SliderFloat("Angle", &ws.casc1.angle, 0.f, 3.14f * 2.f);
+
+		if (ImGui::Button("Regenerate Textures"))
+		{
+			cascade1.regen(ws.casc1.resolution,
+			               ws.casc1.patch_size,
+			               ws.casc1.horizontal_displacement_scale,
+			               ws.casc1.depth,
+			               ws.casc1.fetch,
+			               ws.casc1.wind_speed,
+			               ws.casc1.cutoffLow,
+			               ws.casc1.cutoffHigh,
+			               ws.casc1.spread_blend,
+			               ws.casc1.swell,
+			               ws.casc1.angle);
+			cascade2.regen(ws.casc1.resolution,
+			               ws.casc2.patch_size,
+			               ws.casc1.horizontal_displacement_scale,
+			               ws.casc2.depth,
+			               ws.casc1.fetch,
+			               ws.casc1.wind_speed,
+			               ws.casc2.cutoffLow,
+			               ws.casc2.cutoffHigh,
+			               ws.casc1.spread_blend,
+			               ws.casc1.swell,
+			               ws.casc1.angle);
+			cascade3.regen(ws.casc1.resolution,
+			               ws.casc3.patch_size,
+			               ws.casc1.horizontal_displacement_scale,
+			               ws.casc3.depth,
+			               ws.casc1.fetch,
+			               ws.casc1.wind_speed,
+			               ws.casc3.cutoffLow,
+			               ws.casc3.cutoffHigh,
+			               ws.casc1.spread_blend,
+			               ws.casc1.swell,
+			               ws.casc1.angle);
+		}
+	}
+
+	if (ImGui::CollapsingHeader("Geometry"))
+	{
+		ImGui::InputFloat("Chunk Length", &ws.plane.size);
+		ImGui::InputInt("Sqrt # of Chunks", &ws.plane.sqrt_num_instances);
+		ImGui::InputInt("LOD", &ws.plane.lod);
+
+		if (ImGui::Button("Regenerate Geometry"))
+		{
+			waterPlane.regenGeometry(ws.plane.size, ws.plane.sqrt_num_instances, ws.plane.lod);
+		}
+	}
+
+	if (ImGui::CollapsingHeader("Tessellation"))
+	{
+		ImGui::SliderInt("Minimum Level", &ws.tess.min_level, 1, 64);
+		ImGui::SliderInt("Maximum Level", &ws.tess.max_level, 1, 64);
+
+		ImGui::SliderFloat("Minimum Distance", &ws.tess.min_distance, 0, 1000);
+		ImGui::SliderFloat("Maximum Distance", &ws.tess.max_distance, 0, 1000);
+
+		ImGui::Checkbox("Tess Follow Cam", reinterpret_cast<bool *>(&ws.debug.tess_follow_cam));
+	}
+
+	if (ImGui::CollapsingHeader("Camera"))
+	{
+		ImGui::SliderFloat("Speed", &ws.cam.speed, 50.f, 500.f);
+		ImGui::SliderFloat("Sprint Factor", &ws.cam.sprint_factor, 1.f, 50.f);
+	}
+
+	if (ImGui::CollapsingHeader("Misc"))
+	{
+		ImGui::SliderFloat("Scale", &ws.casc1.horizontal_displacement_scale, 0.f, 10.f);
+		ImGui::SliderFloat("Normal Strength", &ws.render.normal_strength, 0.f, 50.f);
+		ImGui::SliderFloat("Tex Coord Scale", &ws.render.tex_coord_scale, 1.f, 10000.f);
+		ImGui::SliderFloat("Displacement Scale Factor", &ws.casc1.vertical_displacement_scale, 0.001f, 100.f);
+		ImGui::Checkbox("Simulate", reinterpret_cast<bool *>(&ws.debug.simulate_ocean));
+		ImGui::Checkbox("Render Cubemap", reinterpret_cast<bool *>(&ws.debug.render_skybox));
+		ImGui::Checkbox("Render Water", reinterpret_cast<bool *>(&ws.debug.render_ocean));
+		ImGui::Checkbox("Render Wireframe", reinterpret_cast<bool *>(&ws.debug.render_wireframe));
+
+		if (ImGui::Button("Reload Shaders"))
+		{
+			std::cout << "Reloading shaders..." << std::endl;
+			if (waterShaderProgram)
+			{
+				glDeleteProgram(waterShaderProgram);
+			}
+			waterShaderProgram = reloadShaders();
+			glUseProgram(waterShaderProgram);
+			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
+			cascade1.loadShaders();
+		}
+	}
+
+	ImGui::End();
+
+	const char *selections = "DyDx\0DzDzx\0DyxDyz\0DxxDzz\0Buffer\0Displacements\0Derivatices\0Initial Spectrum\0";
+
+	ImGui::Begin("Debug Image", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Combo("Select Image", &ws.debug.image_select, selections);
+	ImGui::Image(reinterpret_cast<void *>(cascade1.getTexture((SpectrumTextures)ws.debug.image_select)),
+	             ImVec2(512.f, 512.f));
+	ImGui::End();
+
+	ImGui::Render();
+}
+
 void GLWaves::loop()
 {
-	WaveSettings ws;
 	ws.load();
 
-	Spectrum cascade1{};
-	Spectrum cascade2{};
-	Spectrum cascade3{};
-	cascade1.init(ws.casc.resolution,
-	              ws.casc.patch_size,
-	              ws.casc.horizontal_displacement_scale,
-	              ws.casc.depth,
-	              ws.casc.fetch,
-	              ws.casc.wind_speed,
-	              ws.casc.cutoffLow,
-	              ws.casc.cutoffHigh,
-	              ws.casc.spread_blend,
-	              ws.casc.swell,
-	              ws.casc.angle);
+	cascade1.init(ws.casc1.resolution,
+	              ws.casc1.patch_size,
+	              ws.casc1.horizontal_displacement_scale,
+	              ws.casc1.depth,
+	              ws.casc1.fetch,
+	              ws.casc1.wind_speed,
+	              ws.casc1.cutoffLow,
+	              ws.casc1.cutoffHigh,
+	              ws.casc1.spread_blend,
+	              ws.casc1.swell,
+	              ws.casc1.angle);
+
+	cascade2.init(ws.casc1.resolution,
+	              ws.casc2.patch_size,
+	              ws.casc1.horizontal_displacement_scale,
+	              ws.casc2.depth,
+	              ws.casc1.fetch,
+	              ws.casc1.wind_speed,
+	              ws.casc2.cutoffLow,
+	              ws.casc2.cutoffHigh,
+	              ws.casc1.spread_blend,
+	              ws.casc1.swell,
+	              ws.casc1.angle);
+
+	cascade3.init(ws.casc1.resolution,
+	              ws.casc3.patch_size,
+	              ws.casc1.horizontal_displacement_scale,
+	              ws.casc3.depth,
+	              ws.casc1.fetch,
+	              ws.casc1.wind_speed,
+	              ws.casc3.cutoffLow,
+	              ws.casc3.cutoffHigh,
+	              ws.casc1.spread_blend,
+	              ws.casc1.swell,
+	              ws.casc1.angle);
 
 	GLuint displacementsTex = cascade1.getTexture(Displacements);
 	GLuint derivatesTex = cascade1.getTexture(Derivates);
@@ -175,7 +360,13 @@ void GLWaves::loop()
 		{
 			cascade1.updateSpectrumTexture();
 			cascade1.fft();
-			cascade1.combineTextures(ws.casc.horizontal_displacement_scale);
+			cascade1.combineTextures(ws.casc1.horizontal_displacement_scale);
+			cascade2.updateSpectrumTexture();
+			cascade2.fft();
+			cascade2.combineTextures(ws.casc1.horizontal_displacement_scale);
+			cascade3.updateSpectrumTexture();
+			cascade3.fft();
+			cascade3.combineTextures(ws.casc1.horizontal_displacement_scale);
 		}
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -183,122 +374,7 @@ void GLWaves::loop()
 		ImGui_ImplGlfw_NewFrame();
 		ImGui_ImplOpenGL3_NewFrame();
 
-		ImGui::NewFrame();
-
-		ImGui::Begin("Settings", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-
-		ImGui::Text("Press E to release the mouse cursor");
-
-		ImGui::Text("Cam Pos: %f %f %f", camPos.x, camPos.y, camPos.z);
-
-		if (ImGui::CollapsingHeader("Spectrum Textures"))
-		{
-			if (ImGui::Combo("Size", &ws.casc.select_tex_res, "256x256\000512x512\0001024x1024\0"))
-			{
-				switch (ws.casc.select_tex_res)
-				{
-				case 0:
-					ws.casc.resolution = 256;
-					break;
-				case 1:
-					ws.casc.resolution = 512;
-					break;
-				case 2:
-					ws.casc.resolution = 1024;
-				}
-			}
-
-			ImGui::InputScalar("Patch Size", ImGuiDataType_S32, &ws.casc.patch_size);
-			ImGui::SliderFloat("Depth", &ws.casc.depth, 1.f, 100.f);
-			ImGui::SliderFloat("Fetch", &ws.casc.fetch, 1.f, 100.f);
-			ImGui::SliderFloat("Wind Speed", &ws.casc.wind_speed, 1.f, 100.f);
-			ImGui::SliderFloat("Cutoff Low", &ws.casc.cutoffLow, 1.f, 100.f);
-			ImGui::SliderFloat("Cutoff High", &ws.casc.cutoffHigh, 1.f, 100.f);
-			ImGui::SliderFloat("Spread Blend", &ws.casc.spread_blend, 0.f, 1.f);
-			ImGui::SliderFloat("Swell", &ws.casc.swell, 0.f, 100.f);
-			ImGui::SliderFloat("Angle", &ws.casc.angle, 0.f, 3.14f * 2.f);
-
-			if (ImGui::Button("Regenerate Textures"))
-			{
-				cascade1.regen(ws.casc.resolution,
-				               ws.casc.patch_size,
-				               ws.casc.horizontal_displacement_scale,
-				               ws.casc.depth,
-				               ws.casc.fetch,
-				               ws.casc.wind_speed,
-				               ws.casc.cutoffLow,
-				               ws.casc.cutoffHigh,
-				               ws.casc.spread_blend,
-				               ws.casc.swell,
-				               ws.casc.angle);
-			}
-		}
-
-		if (ImGui::CollapsingHeader("Geometry"))
-		{
-			ImGui::InputFloat("Chunk Length", &ws.plane.size);
-			ImGui::InputInt("Sqrt # of Chunks", &ws.plane.sqrt_num_instances);
-			ImGui::InputInt("LOD", &ws.plane.lod);
-
-			if (ImGui::Button("Regenerate Geometry"))
-			{
-				waterPlane.regenGeometry(ws.plane.size, ws.plane.sqrt_num_instances, ws.plane.lod);
-			}
-		}
-
-		if (ImGui::CollapsingHeader("Tessellation"))
-		{
-			ImGui::SliderInt("Minimum Level", &ws.tess.min_level, 1, 64);
-			ImGui::SliderInt("Maximum Level", &ws.tess.max_level, 1, 64);
-
-			ImGui::SliderFloat("Minimum Distance", &ws.tess.min_distance, 0, 1000);
-			ImGui::SliderFloat("Maximum Distance", &ws.tess.max_distance, 0, 1000);
-
-			ImGui::Checkbox("Tess Follow Cam", reinterpret_cast<bool *>(&ws.debug.tess_follow_cam));
-		}
-
-		if (ImGui::CollapsingHeader("Camera"))
-		{
-			ImGui::SliderFloat("Speed", &ws.cam.speed, 50.f, 500.f);
-			ImGui::SliderFloat("Sprint Factor", &ws.cam.sprint_factor, 1.f, 50.f);
-		}
-
-		if (ImGui::CollapsingHeader("Misc"))
-		{
-			ImGui::SliderFloat("Scale", &ws.casc.horizontal_displacement_scale, 0.f, 10.f);
-			ImGui::SliderFloat("Normal Strength", &ws.render.normal_strength, 0.f, 50.f);
-			ImGui::SliderFloat("Tex Coord Scale", &ws.render.tex_coord_scale, 1.f, 10000.f);
-			ImGui::SliderFloat("Displacement Scale Factor", &ws.casc.vertical_displacement_scale, 0.001f, 100.f);
-			ImGui::Checkbox("Simulate", reinterpret_cast<bool *>(&ws.debug.simulate_ocean));
-			ImGui::Checkbox("Render Cubemap", reinterpret_cast<bool *>(&ws.debug.render_skybox));
-			ImGui::Checkbox("Render Water", reinterpret_cast<bool *>(&ws.debug.render_ocean));
-			ImGui::Checkbox("Render Wireframe", reinterpret_cast<bool *>(&ws.debug.render_wireframe));
-
-			if (ImGui::Button("Reload Shaders"))
-			{
-				std::cout << "Reloading shaders..." << std::endl;
-				if (waterShaderProgram)
-				{
-					glDeleteProgram(waterShaderProgram);
-				}
-				waterShaderProgram = reloadShaders();
-				glUseProgram(waterShaderProgram);
-				glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(projection));
-				cascade1.loadShaders();
-			}
-		}
-
-		ImGui::End();
-
-		const char *selections = "DyDx\0DzDzx\0DyxDyz\0DxxDzz\0Buffer\0Displacements\0Derivatices\0Initial Spectrum\0";
-
-		ImGui::Begin("Debug Image", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-		ImGui::Combo("Select Image", &ws.debug.image_select, selections);
-		ImGui::Image(reinterpret_cast<void *>(cascade1.getTexture((SpectrumTextures)ws.debug.image_select)),
-		             ImVec2(512.f, 512.f));
-		ImGui::End();
-
-		ImGui::Render();
+		drawUI(waterPlane, waterShaderProgram, projection);
 
 		// Begin water plane
 		glUseProgram(waterShaderProgram);
@@ -310,20 +386,35 @@ void GLWaves::loop()
 			glUniform3f(3, 0.f, 0.f, 0.f);
 		glUniform3f(4, 20.f, 5.f, 2.f);
 		glUniform1f(5, ws.render.normal_strength);
-		glUniform1f(6, ws.render.tex_coord_scale);
+		glUniform1f(6, ws.casc1.patch_size);
 
 		glUniform1f(7, ws.tess.min_distance);
 		glUniform1f(8, ws.tess.max_distance);
 		glUniform1i(9, ws.tess.min_level);
 		glUniform1i(10, ws.tess.max_level);
 
-		glUniform1f(11, ws.casc.vertical_displacement_scale);
+		glUniform1f(11, ws.casc1.vertical_displacement_scale);
+
+		glUniform1f(12, ws.casc2.patch_size);
+		glUniform1f(13, ws.casc3.patch_size);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, displacementsTex);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, derivatesTex);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, cascade2.getTexture(SpectrumTextures::Displacements));
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, cascade2.getTexture(SpectrumTextures::Derivates));
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, cascade3.getTexture(SpectrumTextures::Displacements));
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, cascade3.getTexture(SpectrumTextures::Derivates));
 
 		if (ws.debug.render_wireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -348,6 +439,8 @@ void GLWaves::loop()
 
 	sb.cleanup();
 	cascade1.cleanup();
+	cascade2.cleanup();
+	cascade3.cleanup();
 	waterPlane.destroy();
 }
 
@@ -460,9 +553,10 @@ void GLWaves::keyCallback(GLFWwindow *window, int key, int scancode, int action,
 	else if (key == GLFW_KEY_R && action == GLFW_RELEASE)
 		i.r = false;
 
-	if (mods == GLFW_MOD_SHIFT)
+	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
 		i.shift = true;
-	else
+
+	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
 		i.shift = false;
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)

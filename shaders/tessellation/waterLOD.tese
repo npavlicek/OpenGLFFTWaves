@@ -13,10 +13,14 @@ layout(location = 1) uniform mat4 view;
 layout(location = 2) uniform mat4 projection;
 
 layout(location = 6) uniform float texCoordScale;
+layout(location = 12) uniform float texCoordScale2;
+layout(location = 13) uniform float texCoordScale3;
 
 layout(location = 11) uniform float displacementScaleFactor;
 
 layout(binding = 0) uniform sampler2D DisplacementsTex;
+layout(binding = 2) uniform sampler2D Displacements2Tex;
+layout(binding = 4) uniform sampler2D Displacements3Tex;
 
 void main()
 {
@@ -43,8 +47,12 @@ void main()
 
 	fragPos = vec3(model * vec4(newPos, 1));
 
-	vec4 displacement = inverse(model) * texture(DisplacementsTex, fragPos.xz / texCoordScale);
+	vec4 displacement = texture(DisplacementsTex, fragPos.xz / texCoordScale);
 	displacement.y *= displacementScaleFactor;
+	vec4 displacement2 = texture(Displacements2Tex, fragPos.xz / texCoordScale2);
+	displacement2.y *= displacementScaleFactor;
+	vec4 displacement3 = texture(Displacements3Tex, fragPos.xz / texCoordScale3);
+	displacement3.y *= displacementScaleFactor;
 
-	gl_Position = projection * view * model * vec4(newPos + displacement.xyz, 1);
+	gl_Position = projection * view * model * vec4(newPos + displacement.xyz + displacement2.xyz + displacement3.xyz, 1);
 }
